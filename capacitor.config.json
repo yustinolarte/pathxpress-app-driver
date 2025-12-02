@@ -1,0 +1,8 @@
+{
+  "appId": "com.pathxpress.driver",
+  "appName": "PathXpress Driver",
+  "webDir": "build",
+  "server": {
+    "androidScheme": "https"
+  }
+}

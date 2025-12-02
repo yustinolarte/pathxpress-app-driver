@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Driver {
+  id            Int      @id @default(autoincrement())
+  username      String   @unique @db.VarChar(50)
+  email         String?  @unique @db.VarChar(100)
+  password      String   @db.VarChar(255)
+  fullName      String   @db.VarChar(100)
+  phone         String?  @db.VarChar(20)
+  vehicleNumber String?  @db.VarChar(20)
+  
+  // Profile & Documents
+  photoUrl      String?  @db.Text
+  emiratesId    String?  @db.VarChar(50)
+  emiratesIdExp DateTime?
+  licenseNo     String?  @db.VarChar(50)
+  licenseExp    DateTime?
+  
+  status        DriverStatus @default(ACTIVE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  routes        Route[]
+  reports       Report[]
+
+  @@map("drivers")
+}
+
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Route {
+  id          String   @id @db.VarChar(50)
+  driverId    Int
+  driver      Driver   @relation(fields: [driverId], references: [id])
+  date        DateTime
+  zone        String?  @db.VarChar(100)
+  vehicleInfo String?  @db.VarChar(100)
+  status      RouteStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deliveries  Delivery[]
+
+  @@map("routes")
+}
+
+enum RouteStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Delivery {
+  id            Int      @id @default(autoincrement())
+  routeId       String   @db.VarChar(50)
+  route         Route    @relation(fields: [routeId], references: [id])
+  
+  customerName  String   @db.VarChar(100)
+  customerPhone String?  @db.VarChar(20)
+  address       String   @db.Text
+  latitude      Float?
+  longitude     Float?
+  
+  packageRef    String?  @db.VarChar(50)
+  weight        String?  @db.VarChar(20)
+  dimensions    String?  @db.VarChar(50)
+  
+  type          DeliveryType
+  codAmount     Float    @default(0)
+  status        DeliveryStatus @default(PENDING)
+  
+  proofPhotoUrl String?  @db.Text
+  notes         String?  @db.Text
+  attemptedAt   DateTime?
+  deliveredAt   DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("deliveries")
+}
+
+enum DeliveryType {
+  COD
+  PREPAID
+  RETURN
+}
+
+enum DeliveryStatus {
+  PENDING
+  IN_PROGRESS
+  DELIVERED
+  ATTEMPTED
+  RETURNED
+  CANCELLED
+}
+
+model Report {
+  id          Int      @id @default(autoincrement())
+  driverId    Int
+  driver      Driver   @relation(fields: [driverId], references: [id])
+  
+  issueType   String   @db.VarChar(50)
+  description String?  @db.Text
+  photoUrl    String?  @db.Text
+  
+  latitude    Float?
+  longitude   Float?
+  accuracy    Float?
+  
+  status      ReportStatus @default(PENDING)
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("reports")
+}
+
+enum ReportStatus {
+  PENDING
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+}
