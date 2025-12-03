@@ -41,8 +41,12 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Start server
-// Start server
-app.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`🚀 Server is running on http://0.0.0.0:${PORT}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/health`);
-});
+// Start server only if not running in Vercel (Vercel handles this automatically)
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(Number(PORT), '0.0.0.0', () => {
+        console.log(`🚀 Server is running on http://0.0.0.0:${PORT}`);
+        console.log(`📊 Health check: http://localhost:${PORT}/health`);
+    });
+}
+
+export default app;
