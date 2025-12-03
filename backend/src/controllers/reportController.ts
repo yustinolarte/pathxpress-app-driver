@@ -22,7 +22,12 @@ export const createReport = async (req: AuthRequest, res: Response) => {
         // Upload photo to Cloudinary if provided
         if (photo) {
             try {
-                const uploadResult = await cloudinary.uploader.upload(photo, {
+                // Fix: Prepend data URI prefix so Cloudinary treats it as base64, not a file path
+                const photoToUpload = photo.startsWith('data:image')
+                    ? photo
+                    : `data:image/jpeg;base64,${photo}`;
+
+                const uploadResult = await cloudinary.uploader.upload(photoToUpload, {
                     folder: 'pathxpress/reports',
                     resource_type: 'image'
                 });
