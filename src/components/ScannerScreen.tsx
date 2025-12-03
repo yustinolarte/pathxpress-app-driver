@@ -1,6 +1,6 @@
 import { CheckCircle, Code, Camera as CameraIcon } from 'lucide-react';
-import { useState } from 'react';
-import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
+import { useState, useEffect } from 'react';
+import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
 import { api } from '../services/api';
 
 interface ScannerScreenProps {
@@ -15,6 +15,15 @@ export function ScannerScreen({ onScanComplete, authToken }: ScannerScreenProps)
   const [error, setError] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Check if scanner is supported
+    BarcodeScanner.isSupported().then((result) => {
+      if (!result.supported) {
+        setError('Scanner not supported on this device');
+      }
+    });
+  }, []);
 
   const fetchRouteData = async (routeId: string) => {
     try {
@@ -46,30 +55,30 @@ export function ScannerScreen({ onScanComplete, authToken }: ScannerScreenProps)
   const startScan = async () => {
     try {
       // Check permission
-      const status = await BarcodeScanner.checkPermission({ force: true });
+      const { camera } = await BarcodeScanner.checkPermissions();
 
-      if (!status.granted) {
-        setError('Camera permission denied');
-        return;
+      if (camera !== 'granted') {
+        const { camera: newStatus } = await BarcodeScanner.requestPermissions();
+        if (newStatus !== 'granted') {
+          setError('Camera permission denied');
+          return;
+        }
       }
-
-      // Make background transparent
-      document.body.classList.add('scanner-active');
-      document.querySelector('.scanner-ui')?.classList.add('scanner-active');
 
       setIsScanning(true);
       setError('');
 
       // Start scanning
-      const result = await BarcodeScanner.startScan();
+      const { barcodes } = await BarcodeScanner.scan();
 
-      // Stop scanning
-      stopScan();
+      setIsScanning(false);
 
-      if (result.hasContent) {
+      if (barcodes.length > 0) {
+        const content = barcodes[0].rawValue;
+
         try {
           // The QR code should only contain the route ID (e.g., "DXB-2025-001")
-          let routeId = result.content.trim();
+          let routeId = content.trim();
 
           // Try to parse as JSON first (in case it's {"routeId": "..."})
           try {
@@ -95,14 +104,15 @@ export function ScannerScreen({ onScanComplete, authToken }: ScannerScreenProps)
     } catch (e) {
       console.error('Scan error:', e);
       setError('Failed to scan: ' + (e as Error).message);
-      stopScan();
+      setIsScanning(false);
     }
   };
 
-  const stopScan = () => {
-    BarcodeScanner.stopScan();
-    document.body.classList.remove('scanner-active');
-    document.querySelector('.scanner-ui')?.classList.remove('scanner-active');
+  const stopScan = async () => {
+    // ML Kit scan() is a promise that resolves when scan is done or cancelled.
+    // To cancel programmatically is harder, usually the UI handles it.
+    // But we can try to install the listener if needed, but scan() is simpler.
+    // For now, we just reset state.
     setIsScanning(false);
   };
 

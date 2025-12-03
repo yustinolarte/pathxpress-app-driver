@@ -49,7 +49,8 @@ export function VehicleInspection({ onComplete, authToken }: VehicleInspectionPr
   const handleTakePhoto = async () => {
     try {
       const image = await CapacitorCamera.getPhoto({
-        quality: 70,
+        quality: 50,
+        width: 1024,
         allowEditing: false,
         resultType: CameraResultType.Base64
       });
@@ -92,9 +93,9 @@ export function VehicleInspection({ onComplete, authToken }: VehicleInspectionPr
       }
 
       onComplete();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit inspection:', error);
-      alert('Failed to submit inspection reports. Please try again.');
+      alert(`Failed to submit: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -135,10 +136,10 @@ export function VehicleInspection({ onComplete, authToken }: VehicleInspectionPr
           <div
             key={item.id}
             className={`bg-[#050505]/60 backdrop-blur-sm border rounded-3xl p-5 transition-all ${item.status === 'ok'
-                ? 'border-[#00c853]/50'
-                : item.status === 'issue'
-                  ? 'border-[#e10600]/50'
-                  : 'border-[#555555]/20'
+              ? 'border-[#00c853]/50'
+              : item.status === 'issue'
+                ? 'border-[#e10600]/50'
+                : 'border-[#555555]/20'
               }`}
           >
             <div className="flex items-center justify-between">
@@ -156,8 +157,8 @@ export function VehicleInspection({ onComplete, authToken }: VehicleInspectionPr
                 <button
                   onClick={() => handleStatusChange(item.id, 'ok')}
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${item.status === 'ok'
-                      ? 'bg-[#00c853] text-[#f2f4f8]'
-                      : 'bg-[#0a1128]/60 border border-[#555555]/30 text-[#555555] hover:border-[#00c853]/50'
+                    ? 'bg-[#00c853] text-[#f2f4f8]'
+                    : 'bg-[#0a1128]/60 border border-[#555555]/30 text-[#555555] hover:border-[#00c853]/50'
                     }`}
                 >
                   <CheckCircle className="w-6 h-6" />
@@ -165,8 +166,8 @@ export function VehicleInspection({ onComplete, authToken }: VehicleInspectionPr
                 <button
                   onClick={() => handleStatusChange(item.id, 'issue')}
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${item.status === 'issue'
-                      ? 'bg-[#e10600] text-[#f2f4f8]'
-                      : 'bg-[#0a1128]/60 border border-[#555555]/30 text-[#555555] hover:border-[#e10600]/50'
+                    ? 'bg-[#e10600] text-[#f2f4f8]'
+                    : 'bg-[#0a1128]/60 border border-[#555555]/30 text-[#555555] hover:border-[#e10600]/50'
                     }`}
                 >
                   <XCircle className="w-6 h-6" />
@@ -195,8 +196,8 @@ export function VehicleInspection({ onComplete, authToken }: VehicleInspectionPr
             onClick={handleComplete}
             disabled={!allChecked || isSubmitting}
             className={`w-full py-5 rounded-2xl transition-all flex items-center justify-center gap-2 ${allChecked && !isSubmitting
-                ? 'bg-[#e10600] hover:bg-[#c10500] text-[#f2f4f8] shadow-lg shadow-[#e10600]/30'
-                : 'bg-[#555555]/20 text-[#555555] cursor-not-allowed'
+              ? 'bg-[#e10600] hover:bg-[#c10500] text-[#f2f4f8] shadow-lg shadow-[#e10600]/30'
+              : 'bg-[#555555]/20 text-[#555555] cursor-not-allowed'
               }`}
             style={{ fontFamily: 'Poppins, sans-serif' }}
           >

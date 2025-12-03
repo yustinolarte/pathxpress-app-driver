@@ -8,14 +8,12 @@
 // const API_URL = 'http://192.168.70.149:3000/api';
 
 // 3. For Production (Vercel):
-export const API_URL = 'https://yustinolarte-pathxpress-app-driver-gjp7icw2b.vercel.app/api';
+export const API_URL = 'https://pathxpress-app-driver.vercel.app/api';
 
 export const api = {
     // Auth
     login: async (username: string, password: string) => {
         const url = `${API_URL}/auth/login`;
-        console.log('🔵 Attempting login to:', url);
-        console.log('🔵 Username:', username);
 
         try {
             const response = await fetch(url, {
@@ -24,19 +22,14 @@ export const api = {
                 body: JSON.stringify({ username, password })
             });
 
-            console.log('🟢 Response received:', response.status);
-
             if (!response.ok) {
                 const errorText = await response.text();
-                console.log('🔴 Error response:', errorText);
-                throw new Error('Login failed');
+                throw new Error(errorText || 'Login failed');
             }
 
-            const data = await response.json();
-            console.log('🟢 Login successful');
-            return data;
+            return response.json();
         } catch (error) {
-            console.error('🔴 Fetch error:', error);
+            console.error('Login error:', error);
             throw error;
         }
     },
