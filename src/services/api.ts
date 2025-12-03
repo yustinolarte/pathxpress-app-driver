@@ -5,10 +5,10 @@
 // const API_URL = 'http://localhost:3000/api';
 
 // 2. For Physical Device (Your Local IP):
-const API_URL = 'http://192.168.70.149:3000/api';
+// const API_URL = 'http://192.168.70.149:3000/api';
 
-// 3. For Browser / Web Testing:
-// const API_URL = 'http://localhost:3000/api';
+// 3. For Production (Vercel):
+const API_URL = 'https://yustinolarte-pathxpress-app-driver-gjp7icw2b.vercel.app/api';
 
 export const api = {
     // Auth
