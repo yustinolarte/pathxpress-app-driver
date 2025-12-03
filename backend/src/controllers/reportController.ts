@@ -27,9 +27,11 @@ export const createReport = async (req: AuthRequest, res: Response) => {
                     resource_type: 'image'
                 });
                 photoUrl = uploadResult.secure_url;
-            } catch (uploadError) {
+            } catch (uploadError: any) {
                 console.error('Photo upload error:', uploadError);
-                return res.status(500).json({ error: 'Failed to upload photo' });
+                return res.status(500).json({
+                    error: `Failed to upload photo: ${uploadError.message || JSON.stringify(uploadError)}`
+                });
             }
         }
 

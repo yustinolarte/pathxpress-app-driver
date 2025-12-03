@@ -86,7 +86,13 @@ export const api = {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to create report');
+            const errorText = await response.text();
+            try {
+                const errorJson = JSON.parse(errorText);
+                throw new Error(errorJson.error || 'Failed to create report');
+            } catch {
+                throw new Error(errorText || 'Failed to create report');
+            }
         }
 
         return response.json();
