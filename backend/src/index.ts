@@ -1,3 +1,4 @@
+// Updated for CORS fix - Dec 3, 2025
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
