@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Lock, Mail, AlertCircle } from 'lucide-react';
-import { api } from '../services/api';
+import { api, API_URL } from '../services/api';
 
 interface LoginScreenProps {
   onLogin: (token: string, driver: any) => void;
@@ -13,6 +13,9 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLoginSubmit = async () => {
+    alert('🔵 Button clicked! Starting login...');
+    console.log('🔵 handleLoginSubmit called');
+
     if (!email || !password) {
       setError('Please enter username and password');
       return;
@@ -38,6 +41,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       <div className="absolute bottom-40 left-10 w-60 h-60 bg-[#e10600] opacity-5 rounded-full blur-3xl"></div>
 
       <div className="w-full max-w-md relative z-10">
+        {/* DEBUG: Show API URL */}
+        <div className="text-center mb-4 text-[#00ff00] text-xs font-mono bg-black/50 p-2 rounded">
+          API: {API_URL}
+        </div>
+
         {/* Logo */}
         <div className="text-center mb-16">
           <div className="inline-block flex flex-col items-center">
