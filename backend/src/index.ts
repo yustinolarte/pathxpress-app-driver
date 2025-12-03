@@ -32,7 +32,7 @@ app.use('/api/driver', driverRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'PathXpress Driver API is running' });
+    res.json({ status: 'ok', message: 'PathXpress Driver API is running', timestamp: new Date().toISOString() });
 });
 
 // Error handling middleware
