@@ -138,7 +138,7 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
                             <MapPin className="w-4 h-4 text-[#e10600]" />
                         </div>
                         <span className="text-[#555555]">Zone</span>
-                        <span className="text-[#f2f4f8] font-medium">Deira</span>
+                        <span className="text-[#f2f4f8] font-medium">{routeData?.zone || 'Not Set'}</span>
                     </div>
                     <div className="w-px h-8 bg-[#555555]/20"></div>
                     <div className="flex flex-col items-center gap-1">
@@ -146,7 +146,7 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
                             <Truck className="w-4 h-4 text-[#e10600]" />
                         </div>
                         <span className="text-[#555555]">Vehicle</span>
-                        <span className="text-[#f2f4f8] font-medium">DXB 4523</span>
+                        <span className="text-[#f2f4f8] font-medium">{routeData?.vehicleInfo || 'Not Set'}</span>
                     </div>
                     <div className="w-px h-8 bg-[#555555]/20"></div>
                     <div className="flex flex-col items-center gap-1">
@@ -154,7 +154,9 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
                             <Wallet className="w-4 h-4 text-[#e10600]" />
                         </div>
                         <span className="text-[#555555]">COD Total</span>
-                        <span className="text-[#f2f4f8] font-medium">0.00 AED</span>
+                        <span className="text-[#f2f4f8] font-medium">
+                            {routeData?.deliveries?.reduce((sum: number, d: any) => sum + (d.codAmount || 0), 0).toFixed(2) || '0.00'} AED
+                        </span>
                     </div>
                 </div>
 

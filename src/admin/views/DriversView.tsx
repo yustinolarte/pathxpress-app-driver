@@ -9,6 +9,8 @@ interface Driver {
     email?: string;
     phone?: string;
     vehicleNumber?: string;
+    emiratesId?: string;
+    licenseNo?: string;
     status: string;
     createdAt: string;
     _count?: { routes: number; reports: number };
@@ -81,8 +83,8 @@ export function DriversView() {
             email: driver.email || '',
             phone: driver.phone || '',
             vehicleNumber: driver.vehicleNumber || '',
-            emiratesId: '',
-            licenseNo: '',
+            emiratesId: driver.emiratesId || '',
+            licenseNo: driver.licenseNo || '',
             status: driver.status
         });
         setShowModal(true);
@@ -329,17 +331,46 @@ export function DriversView() {
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-[#e10600]/50 transition-colors"
+                                        placeholder="+971..."
                                     />
+                                </div>
+                            </div>
+
+                            {/* Documents Section */}
+                            <div className="border-t border-white/5 pt-4 mt-4">
+                                <p className="text-white/40 text-xs mb-3 uppercase tracking-wider">Documents & Vehicle</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-white/60 text-sm mb-2">Emirates ID</label>
+                                        <input
+                                            type="text"
+                                            value={formData.emiratesId}
+                                            onChange={(e) => setFormData({ ...formData, emiratesId: e.target.value })}
+                                            placeholder="784-XXXX-XXXXXXX-X"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-[#e10600]/50 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-white/60 text-sm mb-2">License Number</label>
+                                        <input
+                                            type="text"
+                                            value={formData.licenseNo}
+                                            onChange={(e) => setFormData({ ...formData, licenseNo: e.target.value })}
+                                            placeholder="License #"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-[#e10600]/50 transition-colors"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-white/60 text-sm mb-2">Vehicle Number</label>
+                                    <label className="block text-white/60 text-sm mb-2">Vehicle/Plate Number</label>
                                     <input
                                         type="text"
                                         value={formData.vehicleNumber}
                                         onChange={(e) => setFormData({ ...formData, vehicleNumber: e.target.value })}
+                                        placeholder="A 12345 Dubai"
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-[#e10600]/50 transition-colors"
                                     />
                                 </div>

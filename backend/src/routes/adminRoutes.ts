@@ -9,6 +9,7 @@ import {
     updateDriver,
     deleteDriver,
     getAllRoutes,
+    getRouteDetails,
     createRoute,
     updateRouteStatus,
     getAllDeliveries,
@@ -36,6 +37,7 @@ router.delete('/drivers/:id', deleteDriver);
 
 // Routes management
 router.get('/routes', getAllRoutes);
+router.get('/routes/:routeId', getRouteDetails);
 router.post('/routes', createRoute);
 router.put('/routes/:routeId/status', updateRouteStatus);
 

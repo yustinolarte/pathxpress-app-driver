@@ -233,15 +233,38 @@ export const updateDriver = async (req: Request, res: Response) => {
 export const deleteDriver = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        const driverId = parseInt(id);
+
+        // Check if driver has any routes assigned
+        const routesCount = await prisma.route.count({
+            where: { driverId }
+        });
+
+        if (routesCount > 0) {
+            return res.status(400).json({
+                error: `Cannot delete driver. They have ${routesCount} route(s) assigned. Please reassign or delete routes first.`
+            });
+        }
+
+        // Check for reports
+        const reportsCount = await prisma.report.count({
+            where: { driverId }
+        });
+
+        if (reportsCount > 0) {
+            return res.status(400).json({
+                error: `Cannot delete driver. They have ${reportsCount} report(s). Please delete reports first.`
+            });
+        }
 
         await prisma.driver.delete({
-            where: { id: parseInt(id) }
+            where: { id: driverId }
         });
 
         res.json({ message: 'Driver deleted successfully' });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Delete driver error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: error.message || 'Failed to delete driver' });
     }
 };
 
@@ -252,6 +275,20 @@ export const getAllRoutes = async (req: Request, res: Response) => {
         console.log('Getting all routes...');
 
         const routes = await prisma.route.findMany({
+            include: {
+                driver: {
+                    select: { id: true, fullName: true, vehicleNumber: true }
+                },
+                deliveries: {
+                    select: {
+                        id: true,
+                        status: true,
+                        codAmount: true,
+                        customerName: true,
+                        address: true
+                    }
+                }
+            },
             orderBy: { date: 'desc' }
         });
 
@@ -260,6 +297,33 @@ export const getAllRoutes = async (req: Request, res: Response) => {
         res.json(routes);
     } catch (error: any) {
         console.error('Get all routes error:', error.message);
+        res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+};
+
+export const getRouteDetails = async (req: Request, res: Response) => {
+    try {
+        const { routeId } = req.params;
+
+        const route = await prisma.route.findUnique({
+            where: { id: routeId },
+            include: {
+                driver: {
+                    select: { id: true, fullName: true, phone: true, vehicleNumber: true }
+                },
+                deliveries: {
+                    orderBy: { id: 'asc' }
+                }
+            }
+        });
+
+        if (!route) {
+            return res.status(404).json({ error: 'Route not found' });
+        }
+
+        res.json(route);
+    } catch (error: any) {
+        console.error('Get route details error:', error.message);
         res.status(500).json({ error: error.message || 'Internal server error' });
     }
 };

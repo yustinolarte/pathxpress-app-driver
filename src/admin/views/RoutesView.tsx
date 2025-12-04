@@ -26,6 +26,9 @@ export function RoutesView() {
     const [statusFilter, setStatusFilter] = useState('');
     const [dateFilter, setDateFilter] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [showDetails, setShowDetails] = useState(false);
+    const [selectedRoute, setSelectedRoute] = useState<any>(null);
+    const [loadingDetails, setLoadingDetails] = useState(false);
     const [deliveries, setDeliveries] = useState<any[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -139,6 +142,29 @@ export function RoutesView() {
         }
     };
 
+    const openRouteDetails = async (routeId: string) => {
+        setLoadingDetails(true);
+        setShowDetails(true);
+        try {
+            const route = await adminApi.getRouteDetails(routeId);
+            setSelectedRoute(route);
+        } catch (error: any) {
+            alert('Failed to load route details: ' + error.message);
+            setShowDetails(false);
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
+
+    const getDeliveryStatusColor = (status: string) => {
+        switch (status) {
+            case 'DELIVERED': return 'bg-emerald-500/20 text-emerald-400';
+            case 'ATTEMPTED': return 'bg-amber-500/20 text-amber-400';
+            case 'RETURNED': return 'bg-red-500/20 text-red-400';
+            case 'IN_PROGRESS': return 'bg-blue-500/20 text-blue-400';
+            default: return 'bg-gray-500/20 text-gray-400';
+        }
+    };
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'PENDING': return 'bg-amber-500/20 text-amber-400';
@@ -219,7 +245,8 @@ export function RoutesView() {
                         return (
                             <div
                                 key={route.id}
-                                className="bg-[#16161f]/80 backdrop-blur-sm border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-all"
+                                onClick={() => openRouteDetails(route.id)}
+                                className="bg-[#16161f]/80 backdrop-blur-sm border border-white/5 rounded-2xl p-5 hover:border-white/10 hover:bg-[#16161f] transition-all cursor-pointer"
                             >
                                 <div className="flex items-start justify-between mb-4">
                                     <div>
@@ -420,6 +447,142 @@ export function RoutesView() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Route Details Modal */}
+            {showDetails && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDetails(false)} />
+                    <div className="relative w-full max-w-4xl max-h-[90vh] bg-[#16161f] border border-white/10 rounded-2xl shadow-2xl animate-fadeIn overflow-hidden">
+                        <div className="flex items-center justify-between p-5 border-b border-white/5">
+                            <div>
+                                <h2 className="text-white font-semibold text-lg">
+                                    {loadingDetails ? 'Loading...' : selectedRoute?.id}
+                                </h2>
+                                {selectedRoute && (
+                                    <p className="text-white/50 text-sm mt-1">
+                                        {new Date(selectedRoute.date).toLocaleDateString()} • {selectedRoute.zone || 'No zone'}
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => setShowDetails(false)}
+                                className="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {loadingDetails ? (
+                            <div className="p-10 text-center text-white/50">Loading route details...</div>
+                        ) : selectedRoute && (
+                            <div className="p-5 overflow-y-auto max-h-[calc(90vh-100px)]">
+                                {/* Route Summary */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                    <div className="bg-white/5 rounded-xl p-4 text-center">
+                                        <p className="text-2xl font-bold text-white">{selectedRoute.deliveries?.length || 0}</p>
+                                        <p className="text-white/50 text-sm">Total Stops</p>
+                                    </div>
+                                    <div className="bg-emerald-500/10 rounded-xl p-4 text-center">
+                                        <p className="text-2xl font-bold text-emerald-400">
+                                            {selectedRoute.deliveries?.filter((d: any) => d.status === 'DELIVERED').length || 0}
+                                        </p>
+                                        <p className="text-white/50 text-sm">Delivered</p>
+                                    </div>
+                                    <div className="bg-amber-500/10 rounded-xl p-4 text-center">
+                                        <p className="text-2xl font-bold text-amber-400">
+                                            {selectedRoute.deliveries?.filter((d: any) => d.status === 'ATTEMPTED').length || 0}
+                                        </p>
+                                        <p className="text-white/50 text-sm">Attempted</p>
+                                    </div>
+                                    <div className="bg-blue-500/10 rounded-xl p-4 text-center">
+                                        <p className="text-2xl font-bold text-blue-400">
+                                            AED {selectedRoute.deliveries?.reduce((sum: number, d: any) => sum + (d.codAmount || 0), 0).toFixed(0)}
+                                        </p>
+                                        <p className="text-white/50 text-sm">COD Total</p>
+                                    </div>
+                                </div>
+
+                                {/* Driver Info */}
+                                {selectedRoute.driver && (
+                                    <div className="bg-white/5 rounded-xl p-4 mb-6">
+                                        <p className="text-white/50 text-sm mb-2">Assigned Driver</p>
+                                        <p className="text-white font-medium">{selectedRoute.driver.fullName}</p>
+                                        {selectedRoute.driver.phone && <p className="text-white/50 text-sm">{selectedRoute.driver.phone}</p>}
+                                    </div>
+                                )}
+
+                                {/* Deliveries List */}
+                                <div className="space-y-3">
+                                    <h3 className="text-white font-medium">Deliveries ({selectedRoute.deliveries?.length || 0})</h3>
+                                    {selectedRoute.deliveries?.map((delivery: any, index: number) => (
+                                        <div key={delivery.id} className="bg-white/5 rounded-xl p-4">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 text-sm font-medium">
+                                                        {index + 1}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white font-medium">{delivery.customerName}</p>
+                                                        <p className="text-white/40 text-sm">{delivery.customerPhone || 'No phone'}</p>
+                                                    </div>
+                                                </div>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDeliveryStatusColor(delivery.status)}`}>
+                                                    {delivery.status}
+                                                </span>
+                                            </div>
+
+                                            <p className="text-white/60 text-sm mb-3">{delivery.address}</p>
+
+                                            <div className="flex items-center justify-between text-sm">
+                                                <div className="flex items-center gap-4">
+                                                    {delivery.packageRef && (
+                                                        <span className="text-white/40">REF: {delivery.packageRef}</span>
+                                                    )}
+                                                    {delivery.codAmount > 0 && (
+                                                        <span className="text-amber-400">COD: AED {delivery.codAmount}</span>
+                                                    )}
+                                                </div>
+                                                {delivery.deliveredAt && (
+                                                    <span className="text-white/40">
+                                                        {new Date(delivery.deliveredAt).toLocaleTimeString()}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* POD Photo */}
+                                            {delivery.proofPhotoUrl && (
+                                                <div className="mt-3 pt-3 border-t border-white/5">
+                                                    <p className="text-white/50 text-xs mb-2">Proof of Delivery</p>
+                                                    <img
+                                                        src={delivery.proofPhotoUrl}
+                                                        alt="POD"
+                                                        className="w-full max-w-xs rounded-lg cursor-pointer hover:opacity-80"
+                                                        onClick={() => window.open(delivery.proofPhotoUrl, '_blank')}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {/* Notes */}
+                                            {delivery.notes && (
+                                                <div className="mt-3 pt-3 border-t border-white/5">
+                                                    <p className="text-white/50 text-xs mb-1">Notes</p>
+                                                    <p className="text-white/70 text-sm">{delivery.notes}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+
+                                    {(!selectedRoute.deliveries || selectedRoute.deliveries.length === 0) && (
+                                        <div className="text-center py-8 text-white/40">
+                                            No deliveries in this route
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

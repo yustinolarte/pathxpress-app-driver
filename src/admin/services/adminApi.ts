@@ -91,6 +91,10 @@ class AdminApiService {
         return this.request<any[]>(`/routes${query}`);
     }
 
+    async getRouteDetails(routeId: string) {
+        return this.request<any>(`/routes/${routeId}`);
+    }
+
     async createRoute(data: any) {
         return this.request<any>('/routes', {
             method: 'POST',
