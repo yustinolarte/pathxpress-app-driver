@@ -32,7 +32,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a1128] via-[#0a1128] to-[#1a0808] flex flex-col items-center justify-center px-6 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a1128] flex flex-col items-center justify-center px-6 relative overflow-hidden">
       {/* Decorative accents */}
       <div className="absolute top-20 right-10 w-40 h-40 bg-[#e10600] opacity-10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-40 left-10 w-60 h-60 bg-[#e10600] opacity-5 rounded-full blur-3xl"></div>

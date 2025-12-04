@@ -2,13 +2,16 @@
 // ⚠️ IMPORTANT: Select the correct URL for your testing environment:
 
 // 1. For Android Emulator (with adb reverse):
-// const API_URL = 'http://localhost:3000/api';
+// const API_URL = 'http://localhost:3001/api';
 
-// 2. For Physical Device (Your Local IP):
-// const API_URL = 'http://192.168.70.149:3000/api';
+// 2. For Physical Device (Your Local IP - find with ipconfig):
+// const API_URL = 'http://YOUR_LOCAL_IP:3001/api';
 
 // 3. For Production (Vercel):
 export const API_URL = 'https://pathxpress-app-driver.vercel.app/api';
+
+// 4. For Local Development:
+// const API_URL = 'http://localhost:3001/api';
 
 export const api = {
     // Auth
@@ -45,6 +48,24 @@ export const api = {
 
         if (!response.ok) {
             throw new Error('Failed to fetch route');
+        }
+
+        return response.json();
+    },
+
+    finishRoute: async (routeId: string, token: string) => {
+        const url = `${API_URL}/routes/${routeId}/status`;
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ status: 'COMPLETED' })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to finish route');
         }
 
         return response.json();

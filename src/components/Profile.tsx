@@ -52,7 +52,7 @@ export function Profile({ onNavigate, authToken }: ProfileProps) {
   return (
     <div className="min-h-screen bg-[#0a1128] pb-32">
       {/* Header */}
-      <div className="bg-[#050505] px-6 pt-12 pb-6">
+      <div className="bg-[#050505] px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-6">
         <div className="flex items-center gap-4 mb-6">
           <button onClick={() => onNavigate('dashboard')} className="text-[#f2f4f8]">
             <ArrowLeft className="w-6 h-6" />
@@ -71,7 +71,7 @@ export function Profile({ onNavigate, authToken }: ProfileProps) {
         {/* Driver Info Card */}
         <div className="bg-[#050505]/60 backdrop-blur-sm border border-[#555555]/20 rounded-3xl p-6">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#e10600] to-[#a00500] flex items-center justify-center text-[#f2f4f8] overflow-hidden" style={{ fontFamily: 'Poppins, sans-serif', fontSize: '2rem' }}>
+            <div className="w-20 h-20 rounded-full bg-[#e10600] flex items-center justify-center text-[#f2f4f8] overflow-hidden" style={{ fontFamily: 'Poppins, sans-serif', fontSize: '2rem' }}>
               {profile?.photoUrl ? (
                 <img src={profile.photoUrl} alt="Profile" className="w-full h-full object-cover" />
               ) : (

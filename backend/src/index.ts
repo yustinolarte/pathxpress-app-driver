@@ -7,6 +7,7 @@ import routeRoutes from './routes/routeRoutes';
 import deliveryRoutes from './routes/deliveryRoutes';
 import reportRoutes from './routes/reportRoutes';
 import driverRoutes from './routes/driverRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -44,6 +45,7 @@ app.use('/api/routes', routeRoutes);
 app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/driver', driverRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

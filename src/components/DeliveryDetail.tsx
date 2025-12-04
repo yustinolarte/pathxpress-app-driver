@@ -8,9 +8,10 @@ interface DeliveryDetailProps {
   deliveryId: number | null;
   routeData?: any;
   authToken: string;
+  onDeliveryUpdate: (deliveryId: number, status: string) => void;
 }
 
-export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken }: DeliveryDetailProps) {
+export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, onDeliveryUpdate }: DeliveryDetailProps) {
   const [photo, setPhoto] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,6 +68,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken }:
       );
 
       alert(`Delivery marked as ${status}`);
+      onDeliveryUpdate(deliveryId, status);
       onNavigate('route');
     } catch (error) {
       console.error('Error updating delivery:', error);
@@ -219,7 +221,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken }:
           </button>
 
           <button
-            onClick={() => handleStatusUpdate('RETURN')}
+            onClick={() => handleStatusUpdate('RETURNED')}
             className="w-full bg-[#555555] hover:bg-[#444444] text-[#f2f4f8] py-5 rounded-2xl transition-all"
             style={{ fontFamily: 'Poppins, sans-serif' }}
           >

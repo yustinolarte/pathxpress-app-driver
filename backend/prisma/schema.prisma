@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL") 
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Driver {
@@ -41,8 +42,8 @@ enum DriverStatus {
 
 model Route {
   id          String   @id @db.VarChar(50)
-  driverId    Int
-  driver      Driver   @relation(fields: [driverId], references: [id])
+  driverId    Int?
+  driver      Driver?  @relation(fields: [driverId], references: [id])
   date        DateTime
   zone        String?  @db.VarChar(100)
   vehicleInfo String?  @db.VarChar(100)

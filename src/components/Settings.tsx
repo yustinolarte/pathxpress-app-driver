@@ -1,4 +1,4 @@
-import { ArrowLeft, AlertCircle, Bell, Globe, HelpCircle, Lock, LogOut, Moon, Shield } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Bell, HelpCircle, LogOut, Shield } from 'lucide-react';
 import { useState } from 'react';
 
 interface SettingsProps {
@@ -7,29 +7,25 @@ interface SettingsProps {
 }
 
 export function Settings({ onNavigate, onLogout }: SettingsProps) {
-  const [darkMode, setDarkMode] = useState(true);
   const [notifications, setNotifications] = useState(true);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const settingsOptions = [
     {
       category: 'Support',
       items: [
         { id: 'report-issue', icon: AlertCircle, label: 'Report Issue', color: 'text-[#e10600]', bg: 'bg-[#e10600]/20' },
-        { id: 'help', icon: HelpCircle, label: 'Help & Support', color: 'text-[#f2f4f8]', bg: 'bg-[#555555]/20' },
       ]
     },
     {
       category: 'Preferences',
       items: [
         { id: 'notifications', icon: Bell, label: 'Notifications', color: 'text-[#f2f4f8]', bg: 'bg-[#555555]/20', toggle: true, value: notifications },
-        { id: 'language', icon: Globe, label: 'Language', color: 'text-[#f2f4f8]', bg: 'bg-[#555555]/20', value: 'English' },
-        { id: 'theme', icon: Moon, label: 'Dark Mode', color: 'text-[#f2f4f8]', bg: 'bg-[#555555]/20', toggle: true, value: darkMode },
       ]
     },
     {
       category: 'Security',
       items: [
-        { id: 'password', icon: Lock, label: 'Change Password', color: 'text-[#f2f4f8]', bg: 'bg-[#555555]/20' },
         { id: 'privacy', icon: Shield, label: 'Privacy & Security', color: 'text-[#f2f4f8]', bg: 'bg-[#555555]/20' },
       ]
     },
@@ -38,17 +34,17 @@ export function Settings({ onNavigate, onLogout }: SettingsProps) {
   const handleItemClick = (id: string) => {
     if (id === 'report-issue') {
       onNavigate('issue');
-    } else if (id === 'theme') {
-      setDarkMode(!darkMode);
     } else if (id === 'notifications') {
       setNotifications(!notifications);
+    } else if (id === 'privacy') {
+      setShowPrivacyModal(true);
     }
   };
 
   return (
     <div className="min-h-screen bg-[#0a1128] pb-32">
       {/* Header */}
-      <div className="bg-[#050505] px-6 pt-12 pb-6">
+      <div className="bg-[#050505] px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-6">
         <div className="flex items-center gap-4">
           <button onClick={() => onNavigate('dashboard')} className="text-[#f2f4f8]">
             <ArrowLeft className="w-6 h-6" />
@@ -115,6 +111,50 @@ export function Settings({ onNavigate, onLogout }: SettingsProps) {
           <div>Version 2.1.0</div>
         </div>
       </div>
+
+      {/* Privacy Modal */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 bg-[#050505]/95 backdrop-blur-sm z-50 flex items-center justify-center px-6">
+          <div className="w-full max-w-md bg-[#0a1128] border border-[#555555]/20 rounded-3xl p-6 max-h-[80vh] overflow-y-auto">
+            <h3 className="text-[#f2f4f8] mb-4 text-xl" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              Privacy & Security
+            </h3>
+
+            <div className="space-y-4 text-[#f2f4f8]/80 text-sm leading-relaxed">
+              <p>
+                <strong className="text-[#f2f4f8]">Data Protection (UAE PDPL)</strong><br />
+                PathXpress is committed to protecting your personal data in compliance with the UAE Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data (PDPL).
+              </p>
+
+              <p>
+                <strong className="text-[#f2f4f8]">Data Collection & Usage</strong><br />
+                We collect only necessary data (location, device info, delivery proof) to fulfill service obligations. Your data is processed lawfully, fairly, and transparently.
+              </p>
+
+              <p>
+                <strong className="text-[#f2f4f8]">Data Storage & Transfer</strong><br />
+                Your data is stored securely within the UAE. Any cross-border transfer complies with PDPL regulations ensuring adequate protection levels.
+              </p>
+
+              <p>
+                <strong className="text-[#f2f4f8]">Your Rights</strong><br />
+                You have the right to access, correct, or request deletion of your personal data. Contact our Data Protection Officer for inquiries.
+              </p>
+
+              <p className="text-xs text-[#555555] mt-4">
+                Last updated: December 2025
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowPrivacyModal(false)}
+              className="w-full mt-6 bg-[#e10600] text-[#f2f4f8] py-4 rounded-2xl hover:bg-[#c10500] transition-all"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

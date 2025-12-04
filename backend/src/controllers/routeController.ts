@@ -20,14 +20,66 @@ export const getRoute = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ error: 'Route not found' });
         }
 
-        // Verify this route belongs to the authenticated driver
-        if (route.driverId !== driverId) {
-            return res.status(403).json({ error: 'Access denied' });
+        // If route is unassigned, allow access (driver can claim it)
+        // If route is assigned, verify it belongs to this driver
+        if (route.driverId !== null && route.driverId !== driverId) {
+            return res.status(403).json({ error: 'This route is assigned to another driver' });
         }
 
         res.json(route);
     } catch (error) {
         console.error('Get route error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Claim/assign an unassigned route to the authenticated driver
+export const claimRoute = async (req: AuthRequest, res: Response) => {
+    try {
+        const { routeId } = req.params;
+        const driverId = req.driverId!;
+
+        const route = await prisma.route.findUnique({
+            where: { id: routeId },
+            include: {
+                deliveries: {
+                    orderBy: { id: 'asc' }
+                }
+            }
+        });
+
+        if (!route) {
+            return res.status(404).json({ error: 'Route not found' });
+        }
+
+        // Check if route is already assigned
+        if (route.driverId !== null) {
+            if (route.driverId === driverId) {
+                // Already assigned to this driver, just return it
+                return res.json(route);
+            }
+            return res.status(403).json({ error: 'This route is already assigned to another driver' });
+        }
+
+        // Assign the route to this driver
+        const updatedRoute = await prisma.route.update({
+            where: { id: routeId },
+            data: {
+                driverId: driverId,
+                status: 'IN_PROGRESS'
+            },
+            include: {
+                deliveries: {
+                    orderBy: { id: 'asc' }
+                }
+            }
+        });
+
+        console.log(`Route ${routeId} claimed by driver ${driverId}`);
+
+        res.json(updatedRoute);
+    } catch (error) {
+        console.error('Claim route error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };

@@ -27,7 +27,8 @@ export function ReportIssue({ onNavigate, authToken }: ReportIssueProps) {
   const handleTakePhoto = async () => {
     try {
       const image = await CapacitorCamera.getPhoto({
-        quality: 90,
+        quality: 50,
+        width: 1024,
         allowEditing: false,
         resultType: CameraResultType.Base64,
         source: CameraSource.Camera
@@ -38,7 +39,10 @@ export function ReportIssue({ onNavigate, authToken }: ReportIssueProps) {
       }
     } catch (error) {
       console.error('Error taking photo:', error);
-      alert('Failed to take photo. Please try again.');
+      // Don't alert if user cancelled
+      if ((error as any).message !== 'User cancelled photos app') {
+        alert('Failed to take photo. Please try again.');
+      }
     }
   };
 
@@ -55,22 +59,30 @@ export function ReportIssue({ onNavigate, authToken }: ReportIssueProps) {
     setIsSubmitting(true);
 
     try {
-      // Get current location
-      const position = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,
-        timeout: 10000
-      });
+      // Get current location (optional)
+      let locationData = null;
+      try {
+        const position = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: false, // Use coarse location for speed/reliability
+          timeout: 5000 // 5 second timeout
+        });
+
+        locationData = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: new Date(position.timestamp).toISOString()
+        };
+      } catch (locError) {
+        console.warn('Could not get location:', locError);
+        // Continue without location
+      }
 
       const reportData = {
         issueType: selectedIssue,
         notes: notes,
         photo: capturedPhoto,
-        location: {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          timestamp: new Date(position.timestamp).toISOString()
-        },
+        location: locationData,
         reportedAt: new Date().toISOString()
       };
 
@@ -91,12 +103,7 @@ export function ReportIssue({ onNavigate, authToken }: ReportIssueProps) {
 
     } catch (error: any) {
       console.error('Error sending report:', error);
-
-      if (error.message?.includes('location')) {
-        alert('Failed to get location. Please enable location permissions in settings.');
-      } else {
-        alert('Failed to send report. Please try again.');
-      }
+      alert(`Failed to send report: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -105,7 +112,7 @@ export function ReportIssue({ onNavigate, authToken }: ReportIssueProps) {
   return (
     <div className="min-h-screen bg-[#0a1128] pb-32">
       {/* Header */}
-      <div className="bg-[#050505] px-6 pt-12 pb-6">
+      <div className="bg-[#050505] px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-6">
         <div className="flex items-center gap-4">
           <button onClick={() => onNavigate('dashboard')} className="text-[#f2f4f8]">
             <ArrowLeft className="w-6 h-6" />

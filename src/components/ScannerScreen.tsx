@@ -38,6 +38,11 @@ export function ScannerScreen({ onScanComplete, authToken }: ScannerScreenProps)
         throw new Error("Invalid route data from server");
       }
 
+      // Check if route is already completed
+      if (data.status === 'COMPLETED') {
+        throw new Error("This route has already been finished");
+      }
+
       setScanned(true);
       setIsLoading(false);
 
