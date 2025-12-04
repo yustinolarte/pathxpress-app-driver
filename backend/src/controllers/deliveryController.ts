@@ -19,14 +19,14 @@ export const getDelivery = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ error: 'Delivery not found' });
         }
 
-        // Verify this delivery belongs to the authenticated driver
-        if (delivery.route.driverId !== driverId) {
+        // Verify this delivery belongs to the authenticated driver (or route is unassigned)
+        if (delivery.route.driverId !== null && delivery.route.driverId !== driverId) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
         res.json(delivery);
-    } catch (error) {
-        console.error('Get delivery error:', error);
+    } catch (error: any) {
+        console.error('Get delivery error:', error?.message || error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -37,6 +37,8 @@ export const updateDeliveryStatus = async (req: AuthRequest, res: Response) => {
         const { status, notes, photoBase64 } = req.body;
         const driverId = req.driverId;
 
+        console.log(`Updating delivery ${id} to status ${status} by driver ${driverId}`);
+
         const delivery = await prisma.delivery.findUnique({
             where: { id: parseInt(id) },
             include: { route: true }
@@ -46,8 +48,9 @@ export const updateDeliveryStatus = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ error: 'Delivery not found' });
         }
 
-        if (delivery.route.driverId !== driverId) {
-            return res.status(403).json({ error: 'Access denied' });
+        // Check if route is assigned to this driver (or not assigned yet)
+        if (delivery.route.driverId !== null && delivery.route.driverId !== driverId) {
+            return res.status(403).json({ error: 'This delivery belongs to another driver' });
         }
 
         let photoUrl = delivery.proofPhotoUrl;
@@ -60,9 +63,9 @@ export const updateDeliveryStatus = async (req: AuthRequest, res: Response) => {
                     resource_type: 'image'
                 });
                 photoUrl = uploadResult.secure_url;
-            } catch (uploadError) {
-                console.error('Photo upload error:', uploadError);
-                return res.status(500).json({ error: 'Failed to upload photo' });
+            } catch (uploadError: any) {
+                console.error('Photo upload error:', uploadError?.message || uploadError);
+                // Continue without photo if upload fails
             }
         }
 
@@ -83,9 +86,11 @@ export const updateDeliveryStatus = async (req: AuthRequest, res: Response) => {
             data: updateData
         });
 
+        console.log(`Delivery ${id} updated successfully to ${status}`);
+
         res.json(updated);
-    } catch (error) {
-        console.error('Update delivery error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        console.error('Update delivery error:', error?.message || error);
+        res.status(500).json({ error: error?.message || 'Failed to update delivery' });
     }
 };

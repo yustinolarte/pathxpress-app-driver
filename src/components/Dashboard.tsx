@@ -7,6 +7,14 @@ interface DashboardProps {
     routeData?: any;
 }
 
+const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'Good morning';
+    if (hour >= 12 && hour < 17) return 'Good afternoon';
+    if (hour >= 17 && hour < 21) return 'Good evening';
+    return 'Good night';
+};
+
 export function Dashboard({ onNavigate, routeData }: DashboardProps) {
     const [isOnDuty, setIsOnDuty] = useState(true);
 
@@ -59,7 +67,7 @@ export function Dashboard({ onNavigate, routeData }: DashboardProps) {
             <div className="bg-[#050505] px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-6">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <div className="text-[#555555] mb-1">Good morning</div>
+                        <div className="text-[#555555] mb-1">{getGreeting()}</div>
                         <h2 className="text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif' }}>Hi, Driver</h2>
                     </div>
                     <div className="flex items-center gap-3">
