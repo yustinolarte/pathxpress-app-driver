@@ -29,9 +29,11 @@ export function ReportsView() {
     const loadReports = async () => {
         try {
             setIsLoading(true);
-            const data = await adminApi.getReports({
-                status: statusFilter || undefined
-            });
+            console.log('Loading reports with filter:', statusFilter);
+            const data = await adminApi.getReports(
+                statusFilter ? { status: statusFilter } : undefined
+            );
+            console.log('Reports received:', data);
             setReports(data);
         } catch (error) {
             console.error('Failed to load reports:', error);

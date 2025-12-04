@@ -440,6 +440,8 @@ export const getAllReports = async (req: Request, res: Response) => {
     try {
         const { status, driverId } = req.query;
 
+        console.log('Getting all reports with filters:', { status, driverId });
+
         const where: any = {};
 
         if (status) where.status = status;
@@ -454,6 +456,8 @@ export const getAllReports = async (req: Request, res: Response) => {
             },
             orderBy: { createdAt: 'desc' }
         });
+
+        console.log(`Found ${reports.length} reports`);
 
         res.json(reports);
     } catch (error) {

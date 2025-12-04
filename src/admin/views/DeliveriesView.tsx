@@ -35,10 +35,13 @@ export function DeliveriesView() {
     const loadDeliveries = async () => {
         try {
             setIsLoading(true);
-            const data = await adminApi.getDeliveries({
-                status: statusFilter || undefined,
-                date: dateFilter || undefined
-            });
+            const params: any = {};
+            if (statusFilter) params.status = statusFilter;
+            if (dateFilter) params.date = dateFilter;
+
+            const data = await adminApi.getDeliveries(
+                Object.keys(params).length > 0 ? params : undefined
+            );
             setDeliveries(data);
         } catch (error) {
             console.error('Failed to load deliveries:', error);

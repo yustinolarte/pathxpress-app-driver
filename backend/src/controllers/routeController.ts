@@ -52,6 +52,11 @@ export const claimRoute = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ error: 'Route not found' });
         }
 
+        // Check if route is already completed
+        if (route.status === 'COMPLETED') {
+            return res.status(400).json({ error: 'This route is already completed and cannot be claimed' });
+        }
+
         // Check if route is already assigned
         if (route.driverId !== null) {
             if (route.driverId === driverId) {
@@ -133,16 +138,21 @@ export const updateRouteStatus = async (req: AuthRequest, res: Response) => {
         const { status } = req.body;
         const driverId = req.driverId;
 
-        // Verify route belongs to driver
+        console.log(`Updating route ${routeId} to status ${status} by driver ${driverId}`);
+
+        // Verify route exists
         const route = await prisma.route.findUnique({
             where: { id: routeId }
         });
 
         if (!route) {
+            console.log(`Route ${routeId} not found`);
             return res.status(404).json({ error: 'Route not found' });
         }
 
-        if (route.driverId !== driverId) {
+        // Allow if route belongs to this driver OR if route is unassigned (null driverId)
+        if (route.driverId !== null && route.driverId !== driverId) {
+            console.log(`Access denied: Route belongs to driver ${route.driverId}, not ${driverId}`);
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -151,9 +161,11 @@ export const updateRouteStatus = async (req: AuthRequest, res: Response) => {
             data: { status }
         });
 
+        console.log(`Route ${routeId} updated to ${status}`);
+
         res.json(updatedRoute);
-    } catch (error) {
-        console.error('Update route status error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        console.error('Update route status error:', error?.message || error);
+        res.status(500).json({ error: error?.message || 'Internal server error' });
     }
 };

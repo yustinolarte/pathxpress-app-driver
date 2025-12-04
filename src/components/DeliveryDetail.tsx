@@ -202,30 +202,60 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
           </button>
         </div>
 
-        {/* Action Buttons */}
-        <div className="space-y-3">
+        {/* Action Buttons - Minimalist Glass Style */}
+        <div className="space-y-3 mt-6">
+          {/* Delivered */}
           <button
             onClick={() => handleStatusUpdate('DELIVERED')}
-            className="w-full bg-[#00c853] hover:bg-[#00a845] text-[#f2f4f8] py-5 rounded-2xl transition-all shadow-lg shadow-[#00c853]/20"
-            style={{ fontFamily: 'Poppins, sans-serif' }}
+            className="w-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 rounded-3xl py-4 px-5 flex items-center gap-4 hover:bg-emerald-500/30 hover:border-emerald-400/50 transition-all active:scale-[0.98]"
           >
-            DELIVERED
+            <div className="w-11 h-11 rounded-2xl bg-emerald-500/30 flex items-center justify-center">
+              <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span className="text-emerald-400 font-semibold flex-1 text-left" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              Delivered
+            </span>
+            <svg className="w-5 h-5 text-emerald-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
           </button>
 
+          {/* Attempted */}
           <button
             onClick={() => handleStatusUpdate('ATTEMPTED')}
-            className="w-full bg-[#ff9800] hover:bg-[#f57c00] text-[#050505] py-5 rounded-2xl transition-all shadow-lg shadow-[#ff9800]/20"
-            style={{ fontFamily: 'Poppins, sans-serif' }}
+            className="w-full bg-amber-500/15 backdrop-blur-md border border-amber-500/25 rounded-3xl py-4 px-5 flex items-center gap-4 hover:bg-amber-500/25 hover:border-amber-400/40 transition-all active:scale-[0.98]"
           >
-            ATTEMPTED
+            <div className="w-11 h-11 rounded-2xl bg-amber-500/25 flex items-center justify-center">
+              <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span className="text-amber-400 font-semibold flex-1 text-left" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              Attempted
+            </span>
+            <svg className="w-5 h-5 text-amber-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
           </button>
 
+          {/* Return */}
           <button
             onClick={() => handleStatusUpdate('RETURNED')}
-            className="w-full bg-[#555555] hover:bg-[#444444] text-[#f2f4f8] py-5 rounded-2xl transition-all"
-            style={{ fontFamily: 'Poppins, sans-serif' }}
+            className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl py-4 px-5 flex items-center gap-4 hover:bg-white/10 hover:border-white/20 transition-all active:scale-[0.98]"
           >
-            RETURN
+            <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center">
+              <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+            </div>
+            <span className="text-white/70 font-semibold flex-1 text-left" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              Return
+            </span>
+            <svg className="w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
           </button>
         </div>
       </div>
