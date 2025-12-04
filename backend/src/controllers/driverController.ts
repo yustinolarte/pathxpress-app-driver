@@ -1,11 +1,18 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { AuthRequest } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 
-export const getDriverProfile = async (req: Request, res: Response) => {
+export const getDriverProfile = async (req: AuthRequest, res: Response) => {
     try {
-        const driverId = (req as any).user.driverId;
+        const driverId = req.driverId;
+
+        console.log('Getting profile for driver:', driverId);
+
+        if (!driverId) {
+            return res.status(401).json({ error: 'Driver ID not found in token' });
+        }
 
         // Get driver details
         const driver = await prisma.driver.findUnique({
@@ -28,8 +35,11 @@ export const getDriverProfile = async (req: Request, res: Response) => {
         });
 
         if (!driver) {
+            console.log('Driver not found for id:', driverId);
             return res.status(404).json({ error: 'Driver not found' });
         }
+
+        console.log('Driver found:', driver.fullName);
 
         // Calculate Metrics for Today
         const today = new Date();
@@ -86,10 +96,14 @@ export const getDriverProfile = async (req: Request, res: Response) => {
     }
 };
 
-export const updateDriverProfile = async (req: Request, res: Response) => {
+export const updateDriverProfile = async (req: AuthRequest, res: Response) => {
     try {
-        const driverId = (req as any).user.driverId;
+        const driverId = req.driverId;
         const { phone, vehicleNumber, photoUrl } = req.body;
+
+        if (!driverId) {
+            return res.status(401).json({ error: 'Driver ID not found in token' });
+        }
 
         const updatedDriver = await prisma.driver.update({
             where: { id: driverId },
@@ -101,7 +115,8 @@ export const updateDriverProfile = async (req: Request, res: Response) => {
         });
 
         res.json(updatedDriver);
-    } catch (error) {
+    } catch (error: any) {
+        console.error('Update profile error:', error?.message || error);
         res.status(500).json({ error: 'Failed to update profile' });
     }
 };
