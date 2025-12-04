@@ -115,7 +115,7 @@ export default function App() {
   }
 
   if (!inspectionComplete) {
-    return <VehicleInspection onComplete={handleInspectionComplete} authToken={authToken!} />;
+    return <VehicleInspection onComplete={handleInspectionComplete} authToken={authToken!} driverInfo={driverInfo} routeData={routeData} />;
   }
 
   const handleDeliveryUpdate = (deliveryId: number, status: string) => {

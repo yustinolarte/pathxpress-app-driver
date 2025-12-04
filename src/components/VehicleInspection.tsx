@@ -6,6 +6,8 @@ import { api } from '../services/api';
 interface VehicleInspectionProps {
   onComplete: () => void;
   authToken: string;
+  driverInfo?: any;
+  routeData?: any;
 }
 
 interface InspectionItem {
@@ -15,7 +17,7 @@ interface InspectionItem {
   photo?: string; // Base64 photo string
 }
 
-export function VehicleInspection({ onComplete, authToken }: VehicleInspectionProps) {
+export function VehicleInspection({ onComplete, authToken, driverInfo, routeData }: VehicleInspectionProps) {
   const [inspectionItems, setInspectionItems] = useState<InspectionItem[]>([
     { id: 'tires', label: 'Tires & Wheels', status: null },
     { id: 'lights', label: 'Lights & Signals', status: null },
@@ -121,11 +123,15 @@ export function VehicleInspection({ onComplete, authToken }: VehicleInspectionPr
         <div className="bg-[#0a1128]/60 backdrop-blur-sm rounded-2xl p-4 border border-[#555555]/20 flex items-center justify-between">
           <div>
             <div className="text-[#555555] mb-1">Assigned Vehicle</div>
-            <div className="text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif' }}>Van - DXB 4523</div>
+            <div className="text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              {driverInfo?.vehicleNumber || routeData?.vehicleInfo || 'Not Assigned'}
+            </div>
           </div>
           <div className="text-right">
             <div className="text-[#555555] mb-1">Route</div>
-            <div className="text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif' }}>DXB-N-042</div>
+            <div className="text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              {routeData?.id || 'No Route'}
+            </div>
           </div>
         </div>
       </div>
