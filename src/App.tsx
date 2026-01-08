@@ -118,19 +118,19 @@ const MOCK_ROUTE = {
 };
 
 export default function App() {
-  // Initialize with 'dashboard' to skip login/scan
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'scanner' | 'inspection' | 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings'>('dashboard');
+  // Start at login screen - REAL FLOW ENABLED
+  const [currentScreen, setCurrentScreen] = useState<'login' | 'scanner' | 'inspection' | 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings'>('login');
   const [selectedDelivery, setSelectedDelivery] = useState<number | null>(null);
 
-  // Set these to true by default to bypass checks
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [routeScanned, setRouteScanned] = useState(true);
-  const [inspectionComplete, setInspectionComplete] = useState(true);
+  // Default to false - require real login and scanning
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [routeScanned, setRouteScanned] = useState(false);
+  const [inspectionComplete, setInspectionComplete] = useState(false);
 
-  // Initialize with mock data
-  const [routeData, setRouteData] = useState<any>(MOCK_ROUTE);
-  const [authToken, setAuthToken] = useState<string | null>("mock-token");
-  const [driverInfo, setDriverInfo] = useState<any>(MOCK_DRIVER);
+  // Initialize with null - will be set after login/scan
+  const [routeData, setRouteData] = useState<any>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [driverInfo, setDriverInfo] = useState<any>(null);
 
   // Load state from localStorage on mount
   useEffect(() => {
