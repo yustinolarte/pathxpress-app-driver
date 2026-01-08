@@ -28,6 +28,7 @@ model Driver {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  routes        Route[]
   reports       Report[]
   shifts        Shift[]
 
