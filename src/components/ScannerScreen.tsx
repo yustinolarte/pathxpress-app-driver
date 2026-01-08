@@ -30,8 +30,8 @@ export function ScannerScreen({ onScanComplete, authToken }: ScannerScreenProps)
       setIsLoading(true);
       setError('');
 
-      // Call real backend API
-      const data = await api.getRoute(routeId, authToken);
+      // Call real backend API - CLAIM the route to assign it to this driver
+      const data = await api.claimRoute(routeId, authToken);
 
       // Validate the data structure
       if (!data.id || !data.deliveries) {

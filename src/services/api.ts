@@ -53,6 +53,23 @@ export const api = {
         return response.json();
     },
 
+    claimRoute: async (routeId: string, token: string) => {
+        const response = await fetch(`${API_URL}/routes/${routeId}/claim`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error || 'Failed to claim route');
+        }
+
+        return response.json();
+    },
+
     finishRoute: async (routeId: string, token: string) => {
         const url = `${API_URL}/routes/${routeId}/status`;
         const response = await fetch(url, {
