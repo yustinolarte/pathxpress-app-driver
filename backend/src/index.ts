@@ -47,6 +47,25 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/driver', driverRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Serve Static Files (Frontend build)
+// Ensure 'public' folder exists and relies on build process copy
+import path from 'path';
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Fallback for Admin Panel (SPA support)
+app.get('/admin*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
+// Fallback for Main App
+app.get('*', (req, res) => {
+    // Don't intercept API calls
+    if (req.path.startsWith('/api')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'PathXpress Driver API is running', timestamp: new Date().toISOString() });
