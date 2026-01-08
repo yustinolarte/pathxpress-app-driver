@@ -1,7 +1,6 @@
-// Updated for CORS fix - Dec 3, 2025
+// Updated for Vercel Serverless - Jan 8
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import routeRoutes from './routes/routeRoutes';
 import deliveryRoutes from './routes/deliveryRoutes';
@@ -9,8 +8,14 @@ import reportRoutes from './routes/reportRoutes';
 import driverRoutes from './routes/driverRoutes';
 import adminRoutes from './routes/adminRoutes';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables (only needed for local dev, Vercel provides them directly)
+if (process.env.NODE_ENV !== 'production') {
+    try {
+        require('dotenv').config();
+    } catch (e) {
+        // dotenv not available or .env file missing - that's fine in production
+    }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;

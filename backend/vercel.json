@@ -4,10 +4,6 @@
         {
             "src": "src/index.ts",
             "use": "@vercel/node"
-        },
-        {
-            "src": "public/**",
-            "use": "@vercel/static"
         }
     ],
     "routes": [
@@ -20,16 +16,13 @@
             "dest": "/src/index.ts"
         },
         {
-            "handle": "filesystem"
-        },
-        {
             "src": "/(.*)",
-            "dest": "/public/$1"
+            "dest": "/src/index.ts"
         }
     ],
     "headers": [
         {
-            "source": "/api/(.*)",
+            "source": "/(.*)",
             "headers": [
                 {
                     "key": "Access-Control-Allow-Origin",

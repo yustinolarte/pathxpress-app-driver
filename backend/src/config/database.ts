@@ -1,12 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient({
-    log: ['error', 'warn'],
+// Singleton pattern for Prisma in serverless environments
+const globalForPrisma = globalThis as unknown as {
+    prisma: PrismaClient | undefined;
+};
+
+const prisma = globalForPrisma.prisma ?? new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
 });
 
-// Test connection on startup
-prisma.$connect()
-    .then(() => console.log('✅ Database connected successfully'))
-    .catch((err) => console.error('❌ Database connection failed:', err));
+if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = prisma;
+}
 
 export default prisma;
