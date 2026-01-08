@@ -107,29 +107,29 @@ export function VehicleInspection({ onComplete, authToken, driverInfo, routeData
   const hasIssues = inspectionItems.some(item => item.status === 'issue');
 
   return (
-    <div className="min-h-screen bg-[#0a1128] relative">
+    <div className="min-h-screen bg-gray-50 relative">
       {/* Header */}
-      <div className="bg-[#050505] px-6 pt-12 pb-6">
+      <div className="bg-white px-6 pt-12 pb-6 shadow-sm">
         <div className="text-center mb-4">
           <div className="inline-block mb-3">
-            <h1 className="text-[#f2f4f8] tracking-wider" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            <h1 className="text-gray-900 text-xl font-bold tracking-wider" style={{ fontFamily: 'Poppins, sans-serif' }}>
               VEHICLE INSPECTION
             </h1>
           </div>
-          <p className="text-[#555555]">Check your vehicle before starting the route</p>
+          <p className="text-gray-500 text-sm">Check your vehicle before starting the route</p>
         </div>
 
         {/* Vehicle Info */}
-        <div className="bg-[#0a1128]/60 backdrop-blur-sm rounded-2xl p-4 border border-[#555555]/20 flex items-center justify-between">
+        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-center justify-between">
           <div>
-            <div className="text-[#555555] mb-1">Assigned Vehicle</div>
-            <div className="text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            <div className="text-gray-500 text-xs uppercase tracking-wider mb-1">Assigned Vehicle</div>
+            <div className="text-gray-900 font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>
               {driverInfo?.vehicleNumber || routeData?.vehicleInfo || 'Not Assigned'}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[#555555] mb-1">Route</div>
-            <div className="text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            <div className="text-gray-500 text-xs uppercase tracking-wider mb-1">Route</div>
+            <div className="text-gray-900 font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>
               {routeData?.id || 'No Route'}
             </div>
           </div>
@@ -138,21 +138,22 @@ export function VehicleInspection({ onComplete, authToken, driverInfo, routeData
 
       {/* Inspection Checklist */}
       <div className="px-6 pt-6 pb-32 space-y-3">
+
         {inspectionItems.map((item) => (
           <div
             key={item.id}
-            className={`bg-[#050505]/60 backdrop-blur-sm border rounded-3xl p-5 transition-all ${item.status === 'ok'
-              ? 'border-[#00c853]/50'
+            className={`bg-white border rounded-3xl p-5 transition-all shadow-sm ${item.status === 'ok'
+              ? 'border-green-200 bg-green-50/10'
               : item.status === 'issue'
-                ? 'border-[#e10600]/50'
-                : 'border-[#555555]/20'
+                ? 'border-red-200 bg-red-50/10'
+                : 'border-gray-100'
               }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h3 className="text-[#f2f4f8] mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>{item.label}</h3>
+                <h3 className="text-gray-900 font-medium mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>{item.label}</h3>
                 {item.photo && (
-                  <div className="flex items-center gap-2 text-[#e10600]">
+                  <div className="flex items-center gap-2 text-red-600 text-sm">
                     <Camera className="w-4 h-4" />
                     <span>Photo attached</span>
                   </div>
@@ -163,8 +164,8 @@ export function VehicleInspection({ onComplete, authToken, driverInfo, routeData
                 <button
                   onClick={() => handleStatusChange(item.id, 'ok')}
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${item.status === 'ok'
-                    ? 'bg-[#00c853] text-[#f2f4f8]'
-                    : 'bg-[#0a1128]/60 border border-[#555555]/30 text-[#555555] hover:border-[#00c853]/50'
+                    ? 'bg-green-600 text-white shadow-lg shadow-green-100'
+                    : 'bg-gray-50 border border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-500'
                     }`}
                 >
                   <CheckCircle className="w-6 h-6" />
@@ -172,8 +173,8 @@ export function VehicleInspection({ onComplete, authToken, driverInfo, routeData
                 <button
                   onClick={() => handleStatusChange(item.id, 'issue')}
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${item.status === 'issue'
-                    ? 'bg-[#e10600] text-[#f2f4f8]'
-                    : 'bg-[#0a1128]/60 border border-[#555555]/30 text-[#555555] hover:border-[#e10600]/50'
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-100'
+                    : 'bg-gray-50 border border-gray-200 text-gray-400 hover:border-red-400 hover:text-red-500'
                     }`}
                 >
                   <XCircle className="w-6 h-6" />
@@ -185,13 +186,13 @@ export function VehicleInspection({ onComplete, authToken, driverInfo, routeData
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#050505] border-t border-[#555555]/20 px-6 py-6">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-6 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
         <div className="max-w-md mx-auto space-y-3">
           {/* Status Summary */}
-          <div className="flex items-center justify-between text-[#555555] mb-2">
+          <div className="flex items-center justify-between text-gray-500 text-sm mb-2">
             <span>Checked: {inspectionItems.filter(i => i.status !== null).length}/{inspectionItems.length}</span>
             {hasIssues && (
-              <span className="text-[#e10600]">
+              <span className="text-red-600 font-medium">
                 {inspectionItems.filter(i => i.status === 'issue').length} issue(s) reported
               </span>
             )}
@@ -201,9 +202,9 @@ export function VehicleInspection({ onComplete, authToken, driverInfo, routeData
           <button
             onClick={handleComplete}
             disabled={!allChecked || isSubmitting}
-            className={`w-full py-5 rounded-2xl transition-all flex items-center justify-center gap-2 ${allChecked && !isSubmitting
-              ? 'bg-[#e10600] hover:bg-[#c10500] text-[#f2f4f8] shadow-lg shadow-[#e10600]/30'
-              : 'bg-[#555555]/20 text-[#555555] cursor-not-allowed'
+            className={`w-full py-5 rounded-2xl transition-all flex items-center justify-center gap-2 font-bold ${allChecked && !isSubmitting
+              ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-200'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             style={{ fontFamily: 'Poppins, sans-serif' }}
           >
@@ -215,17 +216,17 @@ export function VehicleInspection({ onComplete, authToken, driverInfo, routeData
 
       {/* Photo Modal */}
       {showPhotoModal && (
-        <div className="fixed inset-0 bg-[#050505]/95 backdrop-blur-sm z-50 flex items-center justify-center px-6">
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center px-6">
           <div className="w-full max-w-md">
-            <div className="bg-[#0a1128] border border-[#555555]/20 rounded-3xl p-6">
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-2xl">
               <div className="flex flex-col items-center mb-6">
-                <div className="w-16 h-16 bg-[#e10600]/20 rounded-full flex items-center justify-center mb-4">
-                  <AlertTriangle className="w-8 h-8 text-[#e10600]" />
+                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                  <AlertTriangle className="w-8 h-8 text-red-600" />
                 </div>
-                <h3 className="text-[#f2f4f8] mb-2 text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                <h3 className="text-gray-900 text-lg font-bold mb-2 text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
                   Issue Detected
                 </h3>
-                <p className="text-[#555555] text-center">
+                <p className="text-gray-500 text-center">
                   You must take a photo of the issue to proceed.
                 </p>
               </div>
@@ -233,17 +234,17 @@ export function VehicleInspection({ onComplete, authToken, driverInfo, routeData
               {/* Photo Upload Area */}
               <div
                 onClick={handleTakePhoto}
-                className="border-2 border-dashed border-[#e10600]/50 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-[#e10600] transition-all mb-6 bg-[#e10600]/5"
+                className="border-2 border-dashed border-red-200 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-red-400 transition-all mb-6 bg-red-50"
               >
-                <div className="w-12 h-12 bg-[#e10600]/20 rounded-full flex items-center justify-center mb-3">
-                  <Camera className="w-6 h-6 text-[#e10600]" />
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm">
+                  <Camera className="w-6 h-6 text-red-600" />
                 </div>
-                <span className="text-[#f2f4f8] font-medium">Take Photo (Required)</span>
+                <span className="text-red-700 font-medium">Take Photo (Required)</span>
               </div>
 
               <button
                 onClick={handleCancelIssue}
-                className="w-full bg-[#555555]/20 text-[#f2f4f8] py-4 rounded-2xl hover:bg-[#555555]/30 transition-all"
+                className="w-full bg-gray-100 text-gray-700 py-4 rounded-2xl hover:bg-gray-200 transition-all font-medium"
               >
                 Cancel Issue
               </button>

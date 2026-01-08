@@ -14,7 +14,7 @@ export function TabBar({ currentTab, onNavigate, disabled }: TabBarProps) {
   ];
 
   return (
-    <div className={`fixed bottom-0 left-0 right-0 bg-[#050505] border-t border-[#555555]/20 px-6 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] transition-all duration-300 ${disabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+    <div className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-5px_10px_rgba(0,0,0,0.02)] transition-all duration-300 ${disabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
       <div className="flex items-center justify-around max-w-md mx-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -27,9 +27,9 @@ export function TabBar({ currentTab, onNavigate, disabled }: TabBarProps) {
               disabled={disabled}
               className="flex flex-col items-center justify-center flex-1 py-1 transition-all"
             >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-[#e10600]' : 'bg-transparent'
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-primary text-white shadow-lg shadow-black/20 scale-110' : 'bg-transparent text-gray-400 hover:bg-gray-50'
                 }`}>
-                <Icon className={`w-5 h-5 ${isActive ? 'text-[#f2f4f8]' : 'text-[#555555]'}`} />
+                <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
               </div>
             </button>
           );

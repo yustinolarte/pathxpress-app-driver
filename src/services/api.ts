@@ -2,10 +2,10 @@
 // ⚠️ IMPORTANT: Select the correct URL for your testing environment:
 
 // 1. For Android Emulator (with adb reverse):
-// const API_URL = 'http://localhost:3001/api';
+// export const API_URL = 'http://10.0.2.2:3001/api';
 
 // 2. For Physical Device (Your Local IP - find with ipconfig):
-// const API_URL = 'http://YOUR_LOCAL_IP:3001/api';
+// const API_URL = 'http://192.168.70.149:3001/api';
 
 // 3. For Production (Vercel):
 export const API_URL = 'https://pathxpress-app-driver.vercel.app/api';

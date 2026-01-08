@@ -1,6 +1,7 @@
-import { ArrowLeft, Navigation, Settings, MapPin, Truck, Wallet, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Navigation, Settings, MapPin, Truck, Wallet, CheckCircle, Package, Clock, Phone, Map, List } from 'lucide-react';
 import { api } from '../services/api';
 import { TabBar } from './TabBar';
+import { RouteMap } from './RouteMap';
 import { useState } from 'react';
 
 interface RouteListProps {
@@ -24,16 +25,15 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
     const [filter, setFilter] = useState<'All' | 'Pending' | 'COD' | 'Returns'>('All');
     const [showNavigateModal, setShowNavigateModal] = useState(false);
     const [selectedAddress, setSelectedAddress] = useState<{ address: string; lat: number; lng: number } | null>(null);
+    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
-    // Use routeData deliveries if available, otherwise use defaultDeliveries
-    // Map routeData deliveries to match the component's expected structure if needed
     const deliveries = routeData?.deliveries?.map((d: any) => ({
         id: d.id,
         name: d.customerName || 'Unknown Customer',
         address: d.address || 'No Address',
-        distance: '0.0 km', // Placeholder as we don't have real distance calc yet
+        distance: '0.0 km',
         status: d.status === 'pending' ? 'Pending' : d.status === 'completed' ? 'Delivered' : d.status,
-        type: d.codAmount ? 'COD' : 'Prepaid', // Simple logic for type
+        type: d.codAmount ? 'COD' : 'Prepaid',
         cod: d.codAmount ? `${d.codAmount} AED` : null,
         lat: d.coordinates?.lat || 0,
         lng: d.coordinates?.lng || 0
@@ -46,12 +46,6 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
         if (filter === 'Returns') return delivery.type === 'Return';
         return true;
     });
-
-    const statusColors: Record<string, string> = {
-        Pending: 'bg-[#555555] text-[#f2f4f8]',
-        Delivered: 'bg-[#00c853] text-[#f2f4f8]',
-        Attempted: 'bg-[#ff9800] text-[#050505]',
-    };
 
     const handleNavigateClick = (e: React.MouseEvent, delivery: any) => {
         e.stopPropagation();
@@ -77,9 +71,7 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
         setShowNavigateModal(false);
     };
 
-    // Sort deliveries: PENDING first, then ATTEMPTED, then COMPLETED/OTHERS
-    // Sort deliveries: PENDING first, then ATTEMPTED, then COMPLETED/OTHERS
-    // We use [...filteredDeliveries] to create a shallow copy before sorting to avoid mutation issues
+    // Sort logic
     const sortedDeliveries = [...filteredDeliveries].sort((a: any, b: any) => {
         const statusOrder: Record<string, number> = {
             'Pending': 1,
@@ -88,12 +80,8 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
             'Returned': 3,
             'Cancelled': 3
         };
-
-        // Default to 4 (lowest priority) if status not found
         const orderA = statusOrder[a.status] || 4;
         const orderB = statusOrder[b.status] || 4;
-
-        // If status is same, keep original order (stable sort)
         return orderA - orderB;
     });
 
@@ -103,7 +91,6 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
 
     const handleFinishClick = async () => {
         if (!routeData?.id) return;
-
         try {
             await api.finishRoute(routeData.id, authToken);
             alert('Route finished successfully!');
@@ -114,61 +101,63 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
         }
     };
 
+    // Prepare stops for map
+    const mapStops = deliveries.map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        address: d.address,
+        lat: d.lat,
+        lng: d.lng,
+        status: d.status,
+        type: d.type,
+        cod: d.cod,
+    }));
+
+    const handleNavigateExternal = (lat: number, lng: number) => {
+        const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+        window.open(url, '_blank');
+    };
+
+    // If map view is active, show RouteMap
+    if (viewMode === 'map') {
+        return (
+            <RouteMap
+                stops={mapStops}
+                onStopClick={onSelectDelivery}
+                onBack={() => setViewMode('list')}
+                onNavigateExternal={handleNavigateExternal}
+            />
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-[#0a1128] pb-32">
+        <div className="min-h-screen bg-background pb-32 font-sans">
             {/* Header */}
-            <div className="bg-[#050505] px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-6">
-                <div className="flex items-center gap-4 mb-6">
-                    <button onClick={() => onNavigate('dashboard')} className="text-[#f2f4f8]">
-                        <ArrowLeft className="w-6 h-6" />
+            <div className="px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-4 bg-background z-10 sticky top-0">
+                <div className="flex items-center gap-4 mb-4">
+                    <button onClick={() => onNavigate('dashboard')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
+                        <ArrowLeft className="w-6 h-6 text-gray-900" />
                     </button>
-                    <h2 className="text-[#f2f4f8] flex-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Today's Stops</h2>
+                    <h2 className="text-xl font-bold font-heading flex-1">Today's stops</h2>
+
+                    {/* Map/List Toggle */}
                     <button
-                        onClick={() => onNavigate('settings')}
-                        className="w-10 h-10 rounded-full bg-[#0a1128]/60 backdrop-blur-sm border border-[#555555]/20 flex items-center justify-center text-[#f2f4f8] hover:border-[#e10600]/50 transition-all"
+                        onClick={() => setViewMode('map')}
+                        className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg"
                     >
-                        <Settings className="w-5 h-5" />
+                        <Map className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Route Summary Info */}
-                <div className="bg-[#0a1128]/60 backdrop-blur-sm border border-[#555555]/20 rounded-2xl p-4 mb-6 flex justify-between items-center text-xs">
-                    <div className="flex flex-col items-center gap-1">
-                        <div className="w-8 h-8 bg-[#e10600]/20 rounded-full flex items-center justify-center mb-1">
-                            <MapPin className="w-4 h-4 text-[#e10600]" />
-                        </div>
-                        <span className="text-[#555555]">Zone</span>
-                        <span className="text-[#f2f4f8] font-medium">{routeData?.zone || 'Not Set'}</span>
-                    </div>
-                    <div className="w-px h-8 bg-[#555555]/20"></div>
-                    <div className="flex flex-col items-center gap-1">
-                        <div className="w-8 h-8 bg-[#e10600]/20 rounded-full flex items-center justify-center mb-1">
-                            <Truck className="w-4 h-4 text-[#e10600]" />
-                        </div>
-                        <span className="text-[#555555]">Vehicle</span>
-                        <span className="text-[#f2f4f8] font-medium">{routeData?.vehicleInfo || 'Not Set'}</span>
-                    </div>
-                    <div className="w-px h-8 bg-[#555555]/20"></div>
-                    <div className="flex flex-col items-center gap-1">
-                        <div className="w-8 h-8 bg-[#e10600]/20 rounded-full flex items-center justify-center mb-1">
-                            <Wallet className="w-4 h-4 text-[#e10600]" />
-                        </div>
-                        <span className="text-[#555555]">COD Total</span>
-                        <span className="text-[#f2f4f8] font-medium">
-                            {routeData?.deliveries?.reduce((sum: number, d: any) => sum + (d.codAmount || 0), 0).toFixed(2) || '0.00'} AED
-                        </span>
-                    </div>
-                </div>
-
-                {/* Filters */}
-                <div className="flex gap-2 overflow-x-auto pb-2">
+                {/* Filters as Pills */}
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     {(['All', 'Pending', 'COD', 'Returns'] as const).map((filterOption) => (
                         <button
                             key={filterOption}
                             onClick={() => setFilter(filterOption)}
-                            className={`px-5 py-2 rounded-full whitespace-nowrap transition-all ${filter === filterOption
-                                ? 'bg-[#e10600] text-[#f2f4f8]'
-                                : 'bg-[#0a1128]/60 text-[#555555] border border-[#555555]/30'
+                            className={`px-6 py-3 rounded-full whitespace-nowrap transition-all font-semibold text-sm ${filter === filterOption
+                                ? 'bg-primary text-white shadow-lg shadow-black/10'
+                                : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
                                 }`}
                         >
                             {filterOption}
@@ -178,60 +167,70 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
             </div>
 
             {/* Delivery List */}
-            <div className="px-6 pt-4 space-y-3">
+            <div className="px-6 space-y-4 pt-2">
                 {sortedDeliveries.map((delivery: any) => {
                     const isCompleted = ['Delivered', 'Returned', 'Cancelled'].includes(delivery.status);
+
+                    // Style logic based on card type in image
+                    const isCOD = delivery.type === 'COD';
+                    const isReturn = delivery.type === 'Return';
+
+                    let accentColor = 'bg-accent-purple';
+                    let accentText = 'text-accent-purple-foreground';
+
+                    if (isCOD) {
+                        accentColor = 'bg-accent-green';
+                        accentText = 'text-accent-green-foreground';
+                    }
+                    if (isReturn) {
+                        accentColor = 'bg-orange-100';
+                        accentText = 'text-orange-700';
+                    }
 
                     return (
                         <div
                             key={delivery.id}
                             onClick={() => !isCompleted && onSelectDelivery(delivery.id)}
-                            className={`backdrop-blur-sm border rounded-3xl p-5 transition-all ${isCompleted
-                                ? 'bg-[#050505]/30 border-[#555555]/10 opacity-60 cursor-not-allowed'
-                                : 'bg-[#050505]/60 border-[#555555]/20 cursor-pointer hover:border-[#e10600]/50'
-                                }`}
+                            className={`relative bg-white rounded-[2rem] p-6 transition-all border border-gray-100 shadow-sm hover:shadow-md ${isCompleted ? 'opacity-60 grayscale' : ''}`}
                         >
-                            <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
-                                    <h3 className={`mb-1 ${isCompleted ? 'text-[#555555]' : 'text-[#f2f4f8]'}`} style={{ fontFamily: 'Poppins, sans-serif' }}>{delivery.name}</h3>
-                                    <p className="text-[#555555]">{delivery.address}</p>
-                                </div>
-                                <div className="flex flex-col items-end gap-2">
-                                    {delivery.type === 'COD' && (
-                                        <span className="px-3 py-1 bg-[#e10600] text-[#f2f4f8] rounded-full text-xs">COD</span>
-                                    )}
-                                    {delivery.type === 'Prepaid' && (
-                                        <span className="px-3 py-1 bg-[#555555]/40 text-[#f2f4f8] rounded-full text-xs">Prepaid</span>
-                                    )}
-                                    {delivery.type === 'Return' && (
-                                        <span className="px-3 py-1 bg-[#555555]/40 text-[#f2f4f8] rounded-full text-xs">Return</span>
-                                    )}
-                                </div>
+                            {/* Card Header: Type Badge & Logic */}
+                            <div className={`absolute top-6 right-6 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${accentColor} ${accentText}`}>
+                                {delivery.type === 'COD' ? `COD: ${delivery.cod}` : delivery.type}
                             </div>
 
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <span className="text-[#555555]">{delivery.distance}</span>
-                                    <span className={`px-3 py-1 rounded-full text-xs ${statusColors[delivery.status] || 'bg-[#555555] text-[#f2f4f8]'}`}>
-                                        {delivery.status}
-                                    </span>
+                            {/* Main Info */}
+                            <div className="mb-4 pr-24"> {/* Padding right to avoid overlap with badge */}
+                                <span className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                    {isReturn ? "Pick Up" : "Drop Off"} #{delivery.id}
+                                </span>
+                                <h3 className="text-xl font-bold font-heading text-gray-900 mb-1 leading-tight">
+                                    {delivery.address}
+                                </h3>
+                                <p className="text-gray-500 font-medium text-sm flex items-center gap-2">
+                                    <span className='w-1.5 h-1.5 rounded-full bg-gray-300'></span>
+                                    {delivery.name}
+                                    <span className='w-1.5 h-1.5 rounded-full bg-gray-300'></span>
+                                    {delivery.distance}
+                                </p>
+                            </div>
+
+                            {/* Actions / Status */}
+                            <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-50">
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-2 h-2 rounded-full ${delivery.status === 'Pending' ? 'bg-yellow-400' : 'bg-green-500'}`}></div>
+                                    <span className="text-sm font-semibold text-gray-700">{delivery.status}</span>
                                 </div>
+
                                 {!isCompleted && (
                                     <button
                                         onClick={(e) => handleNavigateClick(e, delivery)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-[#e10600] text-[#f2f4f8] rounded-xl hover:bg-[#c10500] transition-all"
+                                        className="bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-gray-200 active:scale-95 transition-transform"
                                     >
                                         <Navigation className="w-4 h-4" />
-                                        <span>Navigate</span>
+                                        Navigate
                                     </button>
                                 )}
                             </div>
-
-                            {delivery.cod && (
-                                <div className="mt-3 pt-3 border-t border-[#555555]/20">
-                                    <span className={`text-[#f2f4f8] ${isCompleted ? 'text-[#555555]' : ''}`} style={{ fontFamily: 'Poppins, sans-serif' }}>COD: {delivery.cod}</span>
-                                </div>
-                            )}
                         </div>
                     );
                 })}
@@ -240,14 +239,13 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
             {/* Finish Route Button */}
             {
                 allCompleted && (
-                    <div className="px-6 mt-6 mb-6">
+                    <div className="px-6 mt-8 mb-6">
                         <button
                             onClick={handleFinishClick}
-                            className="w-full bg-[#00c853] hover:bg-[#00a845] text-[#f2f4f8] py-5 rounded-2xl transition-all shadow-lg shadow-[#00c853]/20 flex items-center justify-center gap-2"
-                            style={{ fontFamily: 'Poppins, sans-serif', fontSize: '1.1rem', fontWeight: 600 }}
+                            className="w-full bg-accent-green text-accent-green-foreground hover:bg-green-200 py-6 rounded-[2.5rem] transition-all shadow-xl font-bold text-lg flex items-center justify-center gap-3"
                         >
                             <CheckCircle className="w-6 h-6" />
-                            FINISH ROUTE
+                            Finish Shift
                         </button>
                     </div>
                 )
@@ -256,53 +254,43 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
             <TabBar currentTab="route" onNavigate={onNavigate} />
 
             {/* Navigation Modal */}
-            {
-                showNavigateModal && (
-                    <div className="fixed inset-0 bg-[#050505]/95 backdrop-blur-sm z-50 flex items-center justify-center px-6">
-                        <div className="w-full max-w-md">
-                            <div className="bg-[#0a1128] border border-[#555555]/20 rounded-3xl p-6">
-                                <h3 className="text-[#f2f4f8] mb-2 text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                                    Choose Navigation App
-                                </h3>
-                                <p className="text-[#555555] text-center mb-6">
-                                    {selectedAddress?.address}
-                                </p>
+            {showNavigateModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-6">
+                    <div className="w-full max-w-md bg-white rounded-[2rem] p-8 shadow-2xl">
+                        <h3 className="text-xl font-bold font-heading mb-2 text-center">
+                            Start Navigation
+                        </h3>
+                        <p className="text-gray-500 text-center mb-8 text-sm">
+                            {selectedAddress?.address}
+                        </p>
 
-                                <div className="space-y-3 mb-4">
-                                    <button
-                                        onClick={openGoogleMaps}
-                                        className="w-full bg-[#050505]/60 backdrop-blur-sm border border-[#555555]/20 text-[#f2f4f8] py-5 rounded-2xl hover:border-[#e10600]/50 transition-all flex items-center justify-center gap-3"
-                                        style={{ fontFamily: 'Poppins, sans-serif' }}
-                                    >
-                                        <div className="w-10 h-10 bg-[#4285F4] rounded-xl flex items-center justify-center">
-                                            <Navigation className="w-5 h-5 text-white" />
-                                        </div>
-                                        Google Maps
-                                    </button>
+                        <div className="space-y-4 mb-6">
+                            <button
+                                onClick={openGoogleMaps}
+                                className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-900 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 font-semibold"
+                            >
+                                <MapPin className="w-5 h-5 text-red-500" />
+                                Google Maps
+                            </button>
 
-                                    <button
-                                        onClick={openWaze}
-                                        className="w-full bg-[#050505]/60 backdrop-blur-sm border border-[#555555]/20 text-[#f2f4f8] py-5 rounded-2xl hover:border-[#e10600]/50 transition-all flex items-center justify-center gap-3"
-                                        style={{ fontFamily: 'Poppins, sans-serif' }}
-                                    >
-                                        <div className="w-10 h-10 bg-[#33CCFF] rounded-xl flex items-center justify-center">
-                                            <Navigation className="w-5 h-5 text-white" />
-                                        </div>
-                                        Waze
-                                    </button>
-                                </div>
-
-                                <button
-                                    onClick={() => setShowNavigateModal(false)}
-                                    className="w-full bg-[#555555]/20 text-[#f2f4f8] py-4 rounded-2xl hover:bg-[#555555]/30 transition-all"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
+                            <button
+                                onClick={openWaze}
+                                className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-900 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 font-semibold"
+                            >
+                                <Navigation className="w-5 h-5 text-blue-500" />
+                                Waze
+                            </button>
                         </div>
+
+                        <button
+                            onClick={() => setShowNavigateModal(false)}
+                            className="w-full text-gray-400 hover:text-gray-600 font-medium py-2"
+                        >
+                            Close
+                        </button>
                     </div>
-                )
-            }
+                </div>
+            )}
         </div >
     );
 }

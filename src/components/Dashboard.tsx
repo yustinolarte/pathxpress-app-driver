@@ -1,6 +1,8 @@
-import { Package, TrendingUp, Truck, Wallet, Settings } from 'lucide-react';
+import { Package, TrendingUp, Truck, Wallet, Settings, Clock, MapPin } from 'lucide-react';
 import { TabBar } from './TabBar';
-import { useState } from 'react';
+import { ShiftTracker } from './ShiftTracker';
+import { useState, useEffect } from 'react';
+import { timeTracker, TimeTrackerState } from '../services/timeTracker';
 
 interface DashboardProps {
     onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
@@ -16,168 +18,128 @@ const getGreeting = () => {
 };
 
 export function Dashboard({ onNavigate, routeData }: DashboardProps) {
-    const [isOnDuty, setIsOnDuty] = useState(true);
+    const [trackerState, setTrackerState] = useState<TimeTrackerState>(timeTracker.getState());
 
-    // Use routeData if available, otherwise fallback to defaults (or empty state)
+    useEffect(() => {
+        const unsubscribe = timeTracker.subscribe(setTrackerState);
+        return unsubscribe;
+    }, []);
+
+    const isOnDuty = trackerState.isOnDuty;
+
     const packageCount = routeData?.deliveries?.length || 0;
-    const routeId = routeData?.id || routeData?.routeId || 'No Route'; // Handle both id and routeId
+    const routeId = routeData?.id || routeData?.routeId || 'No Route';
 
-    // Fix: Check for backend statuses (DELIVERED, RETURNED) and legacy 'completed'
     const completedCount = routeData?.deliveries?.filter((d: any) =>
         ['DELIVERED', 'RETURNED', 'COMPLETED', 'completed', 'Delivered', 'Returned'].includes(d.status)
     ).length || 0;
 
-    // Calculate progress percentage
     const progressPercent = packageCount > 0 ? (completedCount / packageCount) * 100 : 0;
-
-    // Calculate real COD total from routeData
     const codTotal = routeData?.deliveries
-        ?.filter((d: any) => d.type === 'COD' && d.status === 'PENDING')
+        ?.filter((d: any) => d.type === 'COD' && d.status.toLowerCase() === 'pending')
         .reduce((sum: number, d: any) => sum + (Number(d.codAmount) || 0), 0) || 0;
 
-    // Get Zone and Vehicle from routeData
     const zone = routeData?.zone || 'Not Assigned';
     const vehicle = routeData?.vehicleInfo || 'Not Assigned';
 
-    // Determine button text and state
     const isRouteCompleted = packageCount > 0 && completedCount === packageCount;
-    const isRouteStarted = completedCount > 0; // Or if the user has clicked start
-
-    let buttonText = 'START ROUTE';
-    let isButtonDisabled = !isOnDuty;
-
-    if (!isOnDuty) {
-        buttonText = 'OFF DUTY';
-    } else if (isRouteCompleted) {
-        buttonText = 'ROUTE COMPLETED';
-        isButtonDisabled = true;
-    } else if (isRouteStarted) {
-        buttonText = `CONTINUE ROUTE (${completedCount}/${packageCount})`;
-        isButtonDisabled = false; // Enable so user can go back to route list
-    }
+    const isRouteStarted = completedCount > 0;
 
     const handleStartRoute = () => {
+        if (!isOnDuty) {
+            // Auto clock-in if trying to start route
+            timeTracker.clockIn();
+        }
         onNavigate('route');
-        // In a real app, you might want to save a "started" state here
     };
 
+    let buttonText = 'Start Route';
+    if (isRouteCompleted) {
+        buttonText = 'Route Completed';
+    } else if (isRouteStarted) {
+        buttonText = 'Continue Route';
+    }
+
+    // Always enable button unless route completed
+    const isButtonDisabled = isRouteCompleted;
+
     return (
-        <div className="min-h-screen bg-[#0a1128] pb-32">
-            {/* Header */}
-            <div className="bg-[#050505] px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-6">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <div className="text-[#555555] mb-1">{getGreeting()}</div>
-                        <h2 className="text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif' }}>Hi, Driver</h2>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => onNavigate('settings')}
-                            className="w-12 h-12 rounded-full bg-[#0a1128]/60 backdrop-blur-sm border border-[#555555]/20 flex items-center justify-center text-[#f2f4f8] hover:border-[#e10600]/50 transition-all"
-                        >
-                            <Settings className="w-5 h-5" />
-                        </button>
-                        <div className="w-12 h-12 rounded-full bg-[#e10600] flex items-center justify-center text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                            DR
-                        </div>
-                    </div>
+        <div className="min-h-screen bg-background pb-32 font-sans">
+            {/* Header Section */}
+            <div className="px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-2">
+                <div className="flex items-center justify-between mb-8">
+                    <button onClick={() => onNavigate('settings')} className='p-2 hover:bg-white rounded-full transition-colors'>
+                        <Settings className="w-6 h-6 text-gray-800" />
+                    </button>
+                    <h2 className="text-xl font-bold font-heading">My shift</h2>
+                    <span className="text-gray-400 font-medium">10 AM - 7 PM</span>
                 </div>
 
-                {/* ON DUTY Toggle */}
-                <div className="flex items-center justify-between bg-[#0a1128]/60 backdrop-blur-sm rounded-2xl p-4 border border-[#555555]/20">
-                    <span className="text-[#f2f4f8]">Status</span>
-                    <div className="flex items-center gap-3">
-                        <span className={`${isOnDuty ? 'text-[#00c853]' : 'text-[#555555]'}`} style={{ fontFamily: 'Poppins, sans-serif' }}>
-                            {isOnDuty ? 'ON DUTY' : 'OFF DUTY'}
-                        </span>
-                        <div
-                            onClick={() => setIsOnDuty(!isOnDuty)}
-                            className={`relative w-14 h-7 rounded-full cursor-pointer transition-colors ${isOnDuty ? 'bg-[#e10600]' : 'bg-[#555555]'}`}
-                        >
-                            <div className={`absolute top-1 w-5 h-5 bg-[#f2f4f8] rounded-full shadow-md transition-all ${isOnDuty ? 'right-1' : 'left-1'}`}></div>
+                {/* Shift Tracker Card */}
+                <ShiftTracker />
+
+                {/* Route Info Section */}
+                <div className="space-y-4 mt-6">
+
+                    {/* Progress Card (Drop Off style) */}
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Route Progress</span>
+                                <div className="flex items-baseline gap-1 mt-1">
+                                    <span className="text-3xl font-bold font-heading text-gray-900">{completedCount}</span>
+                                    <span className="text-gray-400 font-medium">/ {packageCount}</span>
+                                </div>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-2xl">
+                                <TrendingUp className="w-6 h-6 text-green-500" />
+                            </div>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-green-500 rounded-full transition-all duration-500"
+                                style={{ width: `${progressPercent}%` }}
+                            />
                         </div>
                     </div>
+
+                    {/* COD Info (Clean white card) */}
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-gray-50 p-3 rounded-2xl">
+                                <Wallet className="w-6 h-6 text-gray-800" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold font-heading text-gray-900">Cash to Collect</h4>
+                                <p className="text-gray-500 text-sm">Pending COD</p>
+                            </div>
+                        </div>
+                        <span className="text-xl font-bold font-heading text-gray-900">AED {codTotal}</span>
+                    </div>
+
+                    {/* Vehicle Info (Clean white card) */}
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center gap-4">
+                        <div className="bg-gray-50 p-3 rounded-2xl">
+                            <Truck className="w-6 h-6 text-gray-800" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold font-heading text-gray-900">Vehicle</h4>
+                            <p className="text-gray-500 text-sm">{vehicle}</p>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className={`px-6 pt-6 space-y-4 transition-opacity duration-300 ${!isOnDuty ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
-                {/* Today's Route Card */}
-                <div className="bg-[#050505]/60 backdrop-blur-sm border border-[#555555]/20 rounded-3xl p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Package className="w-5 h-5 text-[#e10600]" />
-                        <span className="text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif' }}>Today's Route: {routeId}</span>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div>
-                            <div className="flex items-end gap-2 mb-2">
-                                <span className="text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif', fontSize: '2.5rem', lineHeight: '1' }}>{packageCount}</span>
-                                <span className="text-[#555555] pb-2">packages assigned</span>
-                            </div>
-
-                            {/* Progress Bar */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-[#555555]">
-                                    <span>Progress</span>
-                                    <span>{completedCount}/{packageCount}</span>
-                                </div>
-                                <div className="w-full h-2 bg-[#0a1128] rounded-full overflow-hidden">
-                                    <div className="h-full bg-[#e10600]" style={{ width: `${progressPercent}%` }}></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Info Cards */}
-                <div className="bg-[#050505]/60 backdrop-blur-sm border border-[#555555]/20 rounded-3xl p-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#e10600]/20 rounded-xl flex items-center justify-center">
-                                <TrendingUp className="w-5 h-5 text-[#e10600]" />
-                            </div>
-                            <div>
-                                <div className="text-[#555555]">Zone</div>
-                                <div className="text-[#f2f4f8]">{zone}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#e10600]/20 rounded-xl flex items-center justify-center">
-                                <Truck className="w-5 h-5 text-[#e10600]" />
-                            </div>
-                            <div>
-                                <div className="text-[#555555]">Vehicle</div>
-                                <div className="text-[#f2f4f8]">{vehicle}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#e10600]/20 rounded-xl flex items-center justify-center">
-                                <Wallet className="w-5 h-5 text-[#e10600]" />
-                            </div>
-                            <div>
-                                <div className="text-[#555555]">Pending COD Total</div>
-                                <div className="text-[#f2f4f8]" style={{ fontFamily: 'Poppins, sans-serif' }}>{codTotal.toFixed(2)} AED</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Start Route Button */}
+            {/* Bottom Action Button - Elevated to avoid overlap */}
+            <div className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] left-0 right-0 px-6 z-30">
                 <button
                     onClick={handleStartRoute}
                     disabled={isButtonDisabled}
-                    className={`w-full py-5 rounded-2xl transition-all shadow-lg ${!isButtonDisabled
-                        ? 'bg-[#e10600] hover:bg-[#c10500] text-[#f2f4f8] shadow-[#e10600]/30'
-                        : 'bg-[#555555]/20 text-[#555555] cursor-not-allowed shadow-none'
+                    className={`w-full py-5 rounded-[2rem] font-bold text-lg shadow-xl transition-all ${!isButtonDisabled
+                        ? 'bg-primary text-white hover:bg-black/90'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         }`}
-                    style={{ fontFamily: 'Poppins, sans-serif' }}
                 >
                     {buttonText}
                 </button>
