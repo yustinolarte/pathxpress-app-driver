@@ -78,16 +78,24 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
     useEffect(() => {
         if (!mapContainerRef.current || mapRef.current) return;
 
+        const MAPBOX_TOKEN = 'pk.eyJ1IjoicGF0aHhwcmVzcyIsImEiOiJjbWs1eGtudnAwcjBrM2RxczF3ejJoNGJsIn0.BSdbosJMVCMBhzf7UFsgRw';
+
         const map = L.map(mapContainerRef.current, {
             center: [destinationLat, destinationLng],
             zoom: 14,
             zoomControl: false,
-            attributionControl: false,
+            attributionControl: true, // Required for commercial use
             dragging: true,
             scrollWheelZoom: false,
         });
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        // Mapbox Streets v12 Style
+        L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`, {
+            tileSize: 512,
+            zoomOffset: -1,
+            attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
+            maxZoom: 19
+        }).addTo(map);
 
         // Destination Marker (Red)
         const destIcon = L.divIcon({
