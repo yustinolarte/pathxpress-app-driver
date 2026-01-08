@@ -28,10 +28,36 @@ model Driver {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  routes        Route[]
   reports       Report[]
+  shifts        Shift[]
 
   @@map("drivers")
+}
+
+model Shift {
+  id        Int       @id @default(autoincrement())
+  driverId  Int
+  driver    Driver    @relation(fields: [driverId], references: [id])
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+  
+  breaks    ShiftBreak[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("shifts")
+}
+
+model ShiftBreak {
+  id        Int      @id @default(autoincrement())
+  shiftId   Int
+  shift     Shift    @relation(fields: [shiftId], references: [id])
+  type      String   // 'lunch' | 'short'
+  startTime DateTime @default(now())
+  endTime   DateTime?
+  
+  @@map("shift_breaks")
 }
 
 enum DriverStatus {

@@ -1,4 +1,4 @@
-// PathXpress Driver API - Serverless v5
+// PathXpress Driver API - Serverless v6
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes';
@@ -7,8 +7,9 @@ import deliveryRoutes from './routes/deliveryRoutes';
 import reportRoutes from './routes/reportRoutes';
 import driverRoutes from './routes/driverRoutes';
 import adminRoutes from './routes/adminRoutes';
+import shiftRoutes from './routes/shiftRoutes';
 
-// Load environment variables (only needed for local dev, Vercel provides them directly)
+// Load environment variables (only needed for local dev)
 if (process.env.NODE_ENV !== 'production') {
     try {
         require('dotenv').config();
@@ -21,8 +22,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-// Middleware
-// Manually set CORS headers to ensure they are always present
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -41,7 +40,7 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json({ limit: '50mb' })); // For base64 images
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
@@ -51,6 +50,7 @@ app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/driver', driverRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/shifts', shiftRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -64,7 +64,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Start server
-// Start server only if not running in Vercel (Vercel handles this automatically)
 if (process.env.NODE_ENV !== 'production') {
     app.listen(Number(PORT), '0.0.0.0', () => {
         console.log(`🚀 Server is running on http://0.0.0.0:${PORT}`);

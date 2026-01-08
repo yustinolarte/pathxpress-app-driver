@@ -133,5 +133,25 @@ export const api = {
         }
 
         return response.json();
+    },
+
+    // Generic helpers
+    post: async (endpoint: string, data: any) => {
+        const token = localStorage.getItem('authToken');
+        if (!token) throw new Error('No auth token');
+
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            throw new Error('Request failed');
+        }
+        return response.json();
     }
 };

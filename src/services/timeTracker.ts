@@ -1,5 +1,6 @@
 // Time Tracking Service
 // Manages clock-in/out, breaks, and stop timing
+import { api } from './api';
 
 interface ShiftData {
     date: string;
@@ -99,31 +100,52 @@ class TimeTrackerService {
     }
 
     // Clock In/Out
-    clockIn(): void {
+    async clockIn(): Promise<void> {
         if (this.state.isOnDuty) return;
 
-        this.state.isOnDuty = true;
-        this.state.shiftData.clockIn = new Date().toISOString();
-        this.state.shiftData.clockOut = null;
-        this.saveState();
+        try {
+            await api.post('/shifts/start', {});
+
+            this.state.isOnDuty = true;
+            this.state.shiftData.clockIn = new Date().toISOString();
+            this.state.shiftData.clockOut = null;
+            this.saveState();
+        } catch (error) {
+            console.error('Failed to clock in:', error);
+            // Optionally continue offline or show error
+            // For now, we allow local clock-in even if API fails to NOT block the driver
+            this.state.isOnDuty = true;
+            this.state.shiftData.clockIn = new Date().toISOString();
+            this.saveState();
+        }
     }
 
-    clockOut(): void {
+    async clockOut(): Promise<void> {
         if (!this.state.isOnDuty) return;
 
-        // End any active break
-        if (this.state.isOnBreak) {
-            this.endBreak();
-        }
+        try {
+            await api.post('/shifts/end', {});
 
-        // End any active stop
-        if (this.state.currentStopId !== null) {
-            this.endStop(this.state.currentStopId);
-        }
+            // End any active break
+            if (this.state.isOnBreak) {
+                this.endBreak();
+            }
 
-        this.state.isOnDuty = false;
-        this.state.shiftData.clockOut = new Date().toISOString();
-        this.saveState();
+            // End any active stop
+            if (this.state.currentStopId !== null) {
+                this.endStop(this.state.currentStopId);
+            }
+
+            this.state.isOnDuty = false;
+            this.state.shiftData.clockOut = new Date().toISOString();
+            this.saveState();
+        } catch (error) {
+            console.error('Failed to clock out:', error);
+            // Allow local clock-out
+            this.state.isOnDuty = false;
+            this.state.shiftData.clockOut = new Date().toISOString();
+            this.saveState();
+        }
     }
 
     // Breaks
