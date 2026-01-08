@@ -18,10 +18,15 @@ export const adminLogin = async (req: Request, res: Response) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        if (!process.env.JWT_SECRET) {
+            console.error('JWT_SECRET is not configured!');
+            return res.status(500).json({ error: 'Server configuration error' });
+        }
+
         // Generate admin JWT token
         const token = jwt.sign(
             { role: 'admin', username },
-            process.env.JWT_SECRET!,
+            process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 

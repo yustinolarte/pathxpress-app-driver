@@ -18,7 +18,12 @@ export const adminAuth = (req: AdminRequest, res: Response, next: NextFunction) 
 
         const token = authHeader.split(' ')[1];
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+        if (!process.env.JWT_SECRET) {
+            console.error('JWT_SECRET is not defined!');
+            return res.status(500).json({ error: 'Server configuration error' });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
 
         // Verify this is an admin token
         if (decoded.role !== 'admin') {
