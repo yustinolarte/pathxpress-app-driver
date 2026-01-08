@@ -76,7 +76,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
     }
   };
 
-  const updateStatus = async (status: string) => {
+  const updateStatus = async (status: string, customPhoto?: string) => {
     if (!deliveryId) return;
 
     try {
@@ -84,7 +84,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
         deliveryId,
         status,
         authToken,
-        photo || undefined,
+        customPhoto || photo || undefined,
         ''
       );
 
@@ -167,7 +167,8 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
     }
     setShowPODCapture(false);
     setIsCompleted(true);
-    updateStatus('DELIVERED');
+    // Use stamped photo or signature as proof
+    updateStatus('DELIVERED', podData.photoWithStamp || podData.signature || undefined);
   };
 
   useEffect(() => {
@@ -314,6 +315,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
         <PODCapture
           deliveryId={deliveryId}
           customerName={delivery.name}
+          deliveryType={delivery.type} // Pass delivery type (COD or Prepaid)
           onComplete={handlePODComplete}
           onCancel={() => {
             setShowPODCapture(false);

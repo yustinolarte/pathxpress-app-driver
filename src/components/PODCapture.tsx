@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Camera, MapPin, Check, X, Pen, AlertCircle, DoorOpen, User, Package } from 'lucide-react';
+import { Camera, MapPin, Check, X, Pen, AlertCircle, DoorOpen, User } from 'lucide-react';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
 import { SignaturePad } from './SignaturePad';
@@ -24,11 +24,12 @@ interface PODData {
 interface PODCaptureProps {
     deliveryId: number;
     customerName: string;
+    deliveryType?: string;
     onComplete: (podData: PODData) => void;
     onCancel: () => void;
 }
 
-export function PODCapture({ deliveryId, customerName, onComplete, onCancel }: PODCaptureProps) {
+export function PODCapture({ deliveryId, customerName, deliveryType, onComplete, onCancel }: PODCaptureProps) {
     const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(null);
     const [photo, setPhoto] = useState<string | null>(null);
     const [signature, setSignature] = useState<string | null>(null);
@@ -219,18 +220,29 @@ export function PODCapture({ deliveryId, customerName, onComplete, onCancel }: P
                                 </div>
                             </button>
 
-                            <button
-                                onClick={() => setDeliveryMode('left_at_door')}
-                                className="w-full p-5 rounded-2xl border-2 border-gray-200 bg-gray-50 flex items-center gap-4 hover:border-black hover:bg-white transition-all"
-                            >
-                                <div className="w-14 h-14 rounded-xl bg-orange-100 flex items-center justify-center">
-                                    <DoorOpen className="w-7 h-7 text-orange-600" />
+                            {deliveryType !== 'COD' && (
+                                <button
+                                    onClick={() => setDeliveryMode('left_at_door')}
+                                    className="w-full p-5 rounded-2xl border-2 border-gray-200 bg-gray-50 flex items-center gap-4 hover:border-black hover:bg-white transition-all"
+                                >
+                                    <div className="w-14 h-14 rounded-xl bg-orange-100 flex items-center justify-center">
+                                        <DoorOpen className="w-7 h-7 text-orange-600" />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h4 className="font-bold text-gray-900 text-lg">Left at Door</h4>
+                                        <p className="text-sm text-gray-500">Photo proof required</p>
+                                    </div>
+                                </button>
+                            )}
+
+                            {deliveryType === 'COD' && (
+                                <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-200 flex items-center gap-3">
+                                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                                    <p className="text-sm text-yellow-700 font-medium">
+                                        COD orders cannot be left at door. Please collect payment.
+                                    </p>
                                 </div>
-                                <div className="flex-1 text-left">
-                                    <h4 className="font-bold text-gray-900 text-lg">Left at Door</h4>
-                                    <p className="text-sm text-gray-500">Photo proof required</p>
-                                </div>
-                            </button>
+                            )}
                         </div>
                     )}
 
@@ -250,8 +262,8 @@ export function PODCapture({ deliveryId, customerName, onComplete, onCancel }: P
                                     Change
                                 </button>
                                 <span className={`px-4 py-2 rounded-full text-sm font-bold ${deliveryMode === 'handed'
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : 'bg-orange-100 text-orange-700'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-orange-100 text-orange-700'
                                     }`}>
                                     {deliveryMode === 'handed' ? '🤝 Handed to Customer' : '🚪 Left at Door'}
                                 </span>
@@ -261,10 +273,10 @@ export function PODCapture({ deliveryId, customerName, onComplete, onCancel }: P
                             <div
                                 onClick={handleTakePhoto}
                                 className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${photo
-                                        ? 'border-green-500 bg-green-50'
-                                        : deliveryMode === 'left_at_door'
-                                            ? 'border-dashed border-orange-300 bg-orange-50'
-                                            : 'border-dashed border-gray-200 bg-gray-50'
+                                    ? 'border-green-500 bg-green-50'
+                                    : deliveryMode === 'left_at_door'
+                                        ? 'border-dashed border-orange-300 bg-orange-50'
+                                        : 'border-dashed border-gray-200 bg-gray-50'
                                     }`}
                             >
                                 <div className="flex items-center gap-4">
@@ -297,10 +309,10 @@ export function PODCapture({ deliveryId, customerName, onComplete, onCancel }: P
                             <div
                                 onClick={() => setShowSignaturePad(true)}
                                 className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${signature
-                                        ? 'border-green-500 bg-green-50'
-                                        : deliveryMode === 'handed'
-                                            ? 'border-dashed border-blue-300 bg-blue-50'
-                                            : 'border-dashed border-gray-200 bg-gray-50'
+                                    ? 'border-green-500 bg-green-50'
+                                    : deliveryMode === 'handed'
+                                        ? 'border-dashed border-blue-300 bg-blue-50'
+                                        : 'border-dashed border-gray-200 bg-gray-50'
                                     }`}
                             >
                                 <div className="flex items-center gap-4">
@@ -360,8 +372,8 @@ export function PODCapture({ deliveryId, customerName, onComplete, onCancel }: P
                                 onClick={handleConfirmDelivery}
                                 disabled={!isComplete()}
                                 className={`w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all mt-6 ${isComplete()
-                                        ? 'bg-green-500 text-white shadow-lg shadow-green-200'
-                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                    ? 'bg-green-500 text-white shadow-lg shadow-green-200'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                     }`}
                             >
                                 <Check className="w-6 h-6" />
