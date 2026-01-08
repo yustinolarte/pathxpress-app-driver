@@ -2,6 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import authRoutes from './routes/authRoutes';
 import routeRoutes from './routes/routeRoutes';
 import deliveryRoutes from './routes/deliveryRoutes';
@@ -47,9 +48,12 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/driver', driverRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Health check (must be before wildcards)
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', message: 'PathXpress Driver API is running', timestamp: new Date().toISOString() });
+});
+
 // Serve Static Files (Frontend build)
-// Ensure 'public' folder exists and relies on build process copy
-import path from 'path';
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Fallback for Admin Panel (SPA support)
@@ -57,18 +61,13 @@ app.get('/admin*', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
-// Fallback for Main App
+// Fallback for Main App (catch-all, must be last)
 app.get('*', (req, res) => {
     // Don't intercept API calls
     if (req.path.startsWith('/api')) {
         return res.status(404).json({ error: 'API endpoint not found' });
     }
     res.sendFile(path.join(__dirname, '../public/index.html'));
-});
-
-// Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'PathXpress Driver API is running', timestamp: new Date().toISOString() });
 });
 
 // Error handling middleware
