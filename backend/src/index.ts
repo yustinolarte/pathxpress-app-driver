@@ -1,4 +1,4 @@
-// Updated for Vercel Serverless - Jan 8
+// PathXpress Driver API - Vercel Serverless v2
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes';
