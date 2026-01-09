@@ -45,8 +45,8 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
     dimensions: foundDelivery.dimensions || '10 x 10 x 10 cm',
     reference: foundDelivery.reference || `PKG-${foundDelivery.id}`,
     cod: foundDelivery.codAmount ? `${foundDelivery.codAmount} AED` : 'Prepaid',
-    lat: foundDelivery.coordinates?.lat || 0,
-    lng: foundDelivery.coordinates?.lng || 0,
+    lat: foundDelivery.latitude || foundDelivery.coordinates?.lat || 0,
+    lng: foundDelivery.longitude || foundDelivery.coordinates?.lng || 0,
     type: foundDelivery.codAmount ? 'COD' : 'Prepaid'
   } : {
     name: 'Fatima Al Mansoori',

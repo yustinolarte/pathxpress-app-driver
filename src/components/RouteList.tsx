@@ -35,8 +35,8 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
         status: d.status === 'pending' ? 'Pending' : d.status === 'completed' ? 'Delivered' : d.status,
         type: d.codAmount ? 'COD' : 'Prepaid',
         cod: d.codAmount ? `${d.codAmount} AED` : null,
-        lat: d.coordinates?.lat || 0,
-        lng: d.coordinates?.lng || 0
+        lat: d.latitude || d.coordinates?.lat || 0,
+        lng: d.longitude || d.coordinates?.lng || 0
     })) || defaultDeliveries;
 
     const filteredDeliveries = deliveries.filter((delivery: any) => {

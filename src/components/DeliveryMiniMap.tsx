@@ -27,7 +27,11 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
             try {
                 // Get initial position
                 const current = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-                setDriverPosition([current.coords.latitude, current.coords.longitude]);
+
+                // ARTIFICIAL PROOF DELAY: Wait 2 seconds so you can read the text
+                setTimeout(() => {
+                    setDriverPosition([current.coords.latitude, current.coords.longitude]);
+                }, 2000);
 
                 // Start periodic watch
                 const id = await Geolocation.watchPosition(
@@ -204,7 +208,7 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
                 <div className="absolute inset-0 bg-gray-100/80 flex items-center justify-center z-[800]">
                     <div className="text-center">
                         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                        <p className="text-gray-500 font-medium text-sm">Locating...</p>
+                        <p className="text-gray-500 font-medium text-sm">📡 Satellite Positioning...</p>
                     </div>
                 </div>
             )}

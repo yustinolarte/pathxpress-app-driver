@@ -71,8 +71,14 @@ export function RouteMap({ stops, onStopClick, onBack, onNavigateExternal }: Rou
         mapRef.current = map;
 
         // Add tile layer (OpenStreetMap)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+        // Mapbox Streets v12
+        const MAPBOX_TOKEN = 'pk.eyJ1IjoicGF0aHhwcmVzcyIsImEiOiJjbWs1eGtudnAwcjBrM2RxczF3ejJoNGJsIn0.BSdbosJMVCMBhzf7UFsgRw';
+
+        L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`, {
+            tileSize: 512,
+            zoomOffset: -1,
+            attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
+            maxZoom: 19
         }).addTo(map);
 
         // Driver marker (blue)
