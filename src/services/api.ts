@@ -2,16 +2,17 @@
 // ⚠️ IMPORTANT: Select the correct URL for your testing environment:
 
 // 1. For Android Emulator (with adb reverse):
-// export const API_URL = 'http://10.0.2.2:3001/api';
+// export const API_URL = 'http://10.0.2.2:3000/api/driver';
 
 // 2. For Physical Device (Your Local IP - find with ipconfig):
-// const API_URL = 'http://192.168.70.149:3001/api';
+// const API_URL = 'http://192.168.70.149:3000/api/driver';
 
-// 3. For Production (Vercel):
-export const API_URL = 'https://pathxpress-app-driver.vercel.app/api';
+// 3. For Production (PathXpress Portal):
+export const API_URL = 'https://pathxpress.net/api/driver';
 
 // 4. For Local Development:
-// const API_URL = 'http://localhost:3001/api';
+// const API_URL = 'http://localhost:3000/api/driver';
+
 
 export const api = {
     // Auth
@@ -138,7 +139,7 @@ export const api = {
 
     // Driver Profile
     getDriverProfile: async (token: string) => {
-        const response = await fetch(`${API_URL}/driver/profile`, {
+        const response = await fetch(`${API_URL}/profile`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
