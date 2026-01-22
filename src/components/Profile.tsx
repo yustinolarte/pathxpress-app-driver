@@ -6,9 +6,10 @@ import { api } from '../services/api';
 interface ProfileProps {
   onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
   authToken: string;
+  hasRoute?: boolean;
 }
 
-export function Profile({ onNavigate, authToken }: ProfileProps) {
+export function Profile({ onNavigate, authToken, hasRoute }: ProfileProps) {
   const [profile, setProfile] = useState<any>(null);
   const [metrics, setMetrics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,7 +141,7 @@ export function Profile({ onNavigate, authToken }: ProfileProps) {
         </div>
       </div>
 
-      <TabBar currentTab="profile" onNavigate={onNavigate} />
+      <TabBar currentTab="profile" onNavigate={onNavigate} hasRoute={hasRoute} />
     </div>
   );
 }

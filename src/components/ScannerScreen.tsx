@@ -232,31 +232,50 @@ export function ScannerScreen({ onScanComplete, authToken }: ScannerScreenProps)
 
           {/* Manual Input Toggle */}
           {!scanned && !isScanning && (
-            <div className="mt-2">
+            <div className="mt-4 border-t border-gray-100 pt-4">
               <button
                 onClick={() => setShowManualInput(!showManualInput)}
-                className="text-gray-500 text-sm flex items-center justify-center gap-2 w-full hover:text-gray-900 transition-colors py-2"
+                className="text-gray-500 text-sm flex items-center justify-center gap-2 w-full hover:text-gray-900 transition-colors py-2 font-medium"
               >
-                {showManualInput ? <CameraIcon className="w-4 h-4" /> : <Code className="w-4 h-4" />}
-                {showManualInput ? 'Back to Scanner' : 'Enter Route JSON (Debug)'}
+                {showManualInput ? (
+                  <>
+                    <CameraIcon className="w-4 h-4" />
+                    Back to Scanner
+                  </>
+                ) : (
+                  <>
+                    <Code className="w-4 h-4" />
+                    Enter Route Code Manually
+                  </>
+                )}
               </button>
             </div>
           )}
 
           {/* Manual Input Form */}
           {showManualInput && !scanned && (
-            <div className="mt-4 space-y-4">
-              <textarea
-                value={manualJson}
-                onChange={(e) => setManualJson(e.target.value)}
-                placeholder='{"routeId": "...", "deliveries": []}'
-                className="w-full h-32 bg-gray-50 border border-gray-200 rounded-xl p-4 text-gray-900 text-xs font-mono focus:outline-none focus:border-red-600"
-              />
+            <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                  Route ID
+                </label>
+                <input
+                  type="text"
+                  value={manualJson}
+                  onChange={(e) => setManualJson(e.target.value)}
+                  placeholder="e.g. DXB-2025-001"
+                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-red-600 focus:ring-4 focus:ring-red-50 transition-all font-mono text-lg"
+                />
+                <p className="text-gray-400 text-xs mt-2">
+                  Enter the Route ID provided by your dispatcher.
+                </p>
+              </div>
+
               <button
                 onClick={handleManualSubmit}
-                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl transition-all"
+                className="w-full bg-black hover:bg-gray-900 text-white py-4 rounded-xl transition-all font-bold shadow-lg"
               >
-                Load Route Data
+                Load Route
               </button>
             </div>
           )}

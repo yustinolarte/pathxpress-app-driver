@@ -22,28 +22,35 @@ const defaultDeliveries = [
 ];
 
 export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, onFinishRoute }: RouteListProps) {
-    const [filter, setFilter] = useState<'All' | 'Pending' | 'COD' | 'Returns'>('All');
+    const [filter, setFilter] = useState<'All' | 'Pending' | 'COD' | 'Pickups'>('All');
     const [showNavigateModal, setShowNavigateModal] = useState(false);
     const [selectedAddress, setSelectedAddress] = useState<{ address: string; lat: number; lng: number } | null>(null);
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
-    const deliveries = routeData?.deliveries?.map((d: any) => ({
+    // Map deliveries/stops from route data, including stopType for pickup detection
+    const deliveries = (routeData?.stops || routeData?.deliveries)?.map((d: any) => ({
         id: d.id,
-        name: d.customerName || 'Unknown Customer',
+        name: d.contactName || d.customerName || 'Unknown',
         address: d.address || 'No Address',
         distance: '0.0 km',
-        status: d.status === 'pending' ? 'Pending' : d.status === 'completed' ? 'Delivered' : d.status,
-        type: d.codAmount ? 'COD' : 'Prepaid',
+        status: d.status === 'pending' || d.status === 'PENDING' ? 'Pending' :
+            d.status === 'picked_up' || d.status === 'PICKED_UP' ? 'Picked Up' :
+                d.status === 'delivered' || d.status === 'DELIVERED' ? 'Delivered' : d.status,
+        type: d.codAmount || d.codRequired ? 'COD' : 'Prepaid',
         cod: d.codAmount ? `${d.codAmount} AED` : null,
         lat: d.latitude || d.coordinates?.lat || 0,
-        lng: d.longitude || d.coordinates?.lng || 0
+        lng: d.longitude || d.coordinates?.lng || 0,
+        // NEW: Use stopType from API to determine if pickup or delivery
+        stopType: d.stopType || 'delivery',
+        waybillNumber: d.waybillNumber || d.packageRef,
+        contactPhone: d.contactPhone || d.customerPhone,
     })) || defaultDeliveries;
 
     const filteredDeliveries = deliveries.filter((delivery: any) => {
         if (filter === 'All') return true;
         if (filter === 'Pending') return delivery.status === 'Pending';
         if (filter === 'COD') return delivery.type === 'COD';
-        if (filter === 'Returns') return delivery.type === 'Return';
+        if (filter === 'Pickups') return delivery.stopType === 'pickup';
         return true;
     });
 
@@ -71,12 +78,13 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
         setShowNavigateModal(false);
     };
 
-    // Sort logic
+    // Sort logic - pending first, then attempted, then completed
     const sortedDeliveries = [...filteredDeliveries].sort((a: any, b: any) => {
         const statusOrder: Record<string, number> = {
             'Pending': 1,
             'Attempted': 2,
             'Delivered': 3,
+            'Picked Up': 3,
             'Returned': 3,
             'Cancelled': 3
         };
@@ -86,7 +94,7 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
     });
 
     const allCompleted = deliveries.every((d: any) =>
-        ['Delivered', 'Returned', 'Cancelled', 'Attempted'].includes(d.status)
+        ['Delivered', 'Picked Up', 'Returned', 'Cancelled', 'Attempted'].includes(d.status)
     );
 
     const handleFinishClick = async () => {
@@ -151,7 +159,7 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
 
                 {/* Filters as Pills */}
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {(['All', 'Pending', 'COD', 'Returns'] as const).map((filterOption) => (
+                    {(['All', 'Pending', 'COD', 'Pickups'] as const).map((filterOption) => (
                         <button
                             key={filterOption}
                             onClick={() => setFilter(filterOption)}
@@ -169,22 +177,21 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
             {/* Delivery List */}
             <div className="px-6 space-y-4 pt-2">
                 {sortedDeliveries.map((delivery: any) => {
-                    const isCompleted = ['Delivered', 'Returned', 'Cancelled'].includes(delivery.status);
+                    const isCompleted = ['Delivered', 'Returned', 'Cancelled', 'Picked Up'].includes(delivery.status);
 
-                    // Style logic based on card type in image
+                    // Style logic based on card type
                     const isCOD = delivery.type === 'COD';
-                    const isReturn = delivery.type === 'Return';
+                    const isPickup = delivery.stopType === 'pickup';
 
                     let accentColor = 'bg-accent-purple';
                     let accentText = 'text-accent-purple-foreground';
 
-                    if (isCOD) {
-                        accentColor = 'bg-accent-green';
-                        accentText = 'text-accent-green-foreground';
-                    }
-                    if (isReturn) {
+                    if (isPickup) {
                         accentColor = 'bg-orange-100';
                         accentText = 'text-orange-700';
+                    } else if (isCOD) {
+                        accentColor = 'bg-accent-green';
+                        accentText = 'text-accent-green-foreground';
                     }
 
                     return (
@@ -193,15 +200,16 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
                             onClick={() => !isCompleted && onSelectDelivery(delivery.id)}
                             className={`relative bg-white rounded-[2rem] p-6 transition-all border border-gray-100 shadow-sm hover:shadow-md ${isCompleted ? 'opacity-60 grayscale' : ''}`}
                         >
-                            {/* Card Header: Type Badge & Logic */}
+                            {/* Card Header: Type Badge */}
                             <div className={`absolute top-6 right-6 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${accentColor} ${accentText}`}>
-                                {delivery.type === 'COD' ? `COD: ${delivery.cod}` : delivery.type}
+                                {isPickup ? 'PICKUP' : (isCOD ? `COD: ${delivery.cod}` : 'DELIVERY')}
                             </div>
 
                             {/* Main Info */}
                             <div className="mb-4 pr-24"> {/* Padding right to avoid overlap with badge */}
-                                <span className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
-                                    {isReturn ? "Pick Up" : "Drop Off"} #{delivery.id}
+                                <span className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                    {isPickup ? <Package className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                                    {isPickup ? "Pickup" : "Drop Off"} #{delivery.id}
                                 </span>
                                 <h3 className="text-xl font-bold font-heading text-gray-900 mb-1 leading-tight">
                                     {delivery.address}
@@ -209,8 +217,12 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
                                 <p className="text-gray-500 font-medium text-sm flex items-center gap-2">
                                     <span className='w-1.5 h-1.5 rounded-full bg-gray-300'></span>
                                     {delivery.name}
-                                    <span className='w-1.5 h-1.5 rounded-full bg-gray-300'></span>
-                                    {delivery.distance}
+                                    {delivery.waybillNumber && (
+                                        <>
+                                            <span className='w-1.5 h-1.5 rounded-full bg-gray-300'></span>
+                                            {delivery.waybillNumber}
+                                        </>
+                                    )}
                                 </p>
                             </div>
 

@@ -7,6 +7,7 @@ export function ShiftTracker() {
     const [currentTime, setCurrentTime] = useState(0);
     const [breakTime, setBreakTime] = useState(0);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isClockingOut, setIsClockingOut] = useState(false);
 
     useEffect(() => {
         const unsubscribe = timeTracker.subscribe(setState);
@@ -31,9 +32,14 @@ export function ShiftTracker() {
         timeTracker.clockIn();
     };
 
-    const handleClockOut = () => {
+    const handleClockOut = async () => {
         if (confirm('Are you sure you want to clock out?')) {
-            timeTracker.clockOut();
+            setIsClockingOut(true);
+            try {
+                await timeTracker.clockOut();
+            } finally {
+                setIsClockingOut(false);
+            }
         }
     };
 
@@ -137,14 +143,16 @@ export function ShiftTracker() {
                     <div className="flex gap-2">
                         <button
                             onClick={() => handleStartBreak('lunch')}
-                            className="flex-1 py-2.5 bg-orange-100 border border-orange-300 text-orange-700 rounded-xl font-medium flex items-center justify-center gap-2 text-sm"
+                            disabled={isClockingOut}
+                            className="flex-1 py-2.5 bg-orange-100 border border-orange-300 text-orange-700 rounded-xl font-medium flex items-center justify-center gap-2 text-sm disabled:opacity-50"
                         >
                             <UtensilsCrossed className="w-4 h-4" />
                             Lunch
                         </button>
                         <button
                             onClick={() => handleStartBreak('short')}
-                            className="flex-1 py-2.5 bg-orange-100 border border-orange-300 text-orange-700 rounded-xl font-medium flex items-center justify-center gap-2 text-sm"
+                            disabled={isClockingOut}
+                            className="flex-1 py-2.5 bg-orange-100 border border-orange-300 text-orange-700 rounded-xl font-medium flex items-center justify-center gap-2 text-sm disabled:opacity-50"
                         >
                             <Coffee className="w-4 h-4" />
                             Break
@@ -152,10 +160,20 @@ export function ShiftTracker() {
                     </div>
                     <button
                         onClick={handleClockOut}
-                        className="w-full py-3 bg-red-500 text-white rounded-xl font-bold flex items-center justify-center gap-2"
+                        disabled={isClockingOut}
+                        className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isClockingOut ? 'bg-gray-400 text-white cursor-wait' : 'bg-red-500 text-white hover:bg-red-600'}`}
                     >
-                        <Square className="w-4 h-4" fill="white" />
-                        Clock Out
+                        {isClockingOut ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Clocking Out...
+                            </>
+                        ) : (
+                            <>
+                                <Square className="w-4 h-4" fill="white" />
+                                Clock Out
+                            </>
+                        )}
                     </button>
                 </div>
             )}

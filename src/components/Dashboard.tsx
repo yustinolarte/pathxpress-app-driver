@@ -1,4 +1,4 @@
-import { Package, TrendingUp, Truck, Wallet, Settings, Clock, MapPin } from 'lucide-react';
+import { Package, TrendingUp, Truck, Wallet, Settings, Clock, MapPin, QrCode } from 'lucide-react';
 import { TabBar } from './TabBar';
 import { ShiftTracker } from './ShiftTracker';
 import { useState, useEffect } from 'react';
@@ -7,6 +7,8 @@ import { timeTracker, TimeTrackerState } from '../services/timeTracker';
 interface DashboardProps {
     onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
     routeData?: any;
+    onStartRoute?: () => void; // Called to start route scanning
+    hasActiveRoute?: boolean; // True if route is scanned and inspection complete
 }
 
 const getGreeting = () => {
@@ -17,7 +19,7 @@ const getGreeting = () => {
     return 'Good night';
 };
 
-export function Dashboard({ onNavigate, routeData }: DashboardProps) {
+export function Dashboard({ onNavigate, routeData, onStartRoute, hasActiveRoute }: DashboardProps) {
     const [trackerState, setTrackerState] = useState<TimeTrackerState>(timeTracker.getState());
 
     useEffect(() => {
@@ -27,41 +29,63 @@ export function Dashboard({ onNavigate, routeData }: DashboardProps) {
 
     const isOnDuty = trackerState.isOnDuty;
 
+    // Check if we have an active route
+    const hasRoute = hasActiveRoute && routeData;
+
     const packageCount = routeData?.deliveries?.length || 0;
     const routeId = routeData?.id || routeData?.routeId || 'No Route';
 
-    const completedCount = routeData?.deliveries?.filter((d: any) =>
-        ['DELIVERED', 'RETURNED', 'COMPLETED', 'completed', 'Delivered', 'Returned'].includes(d.status)
+    // Count pickups and deliveries separately
+    const stops = routeData?.stops || routeData?.deliveries || [];
+    const pickupCount = stops.filter((s: any) => s.stopType === 'pickup').length;
+    const deliveryCount = stops.filter((s: any) => s.stopType === 'delivery' || !s.stopType).length;
+
+    const completedCount = stops.filter((d: any) =>
+        ['DELIVERED', 'PICKED_UP', 'RETURNED', 'COMPLETED', 'completed', 'Delivered', 'Returned', 'Picked Up'].includes(d.status)
     ).length || 0;
 
-    const progressPercent = packageCount > 0 ? (completedCount / packageCount) * 100 : 0;
-    const codTotal = routeData?.deliveries
-        ?.filter((d: any) => d.type === 'COD' && d.status.toLowerCase() === 'pending')
+    const progressPercent = stops.length > 0 ? (completedCount / stops.length) * 100 : 0;
+    const codTotal = stops
+        ?.filter((d: any) => d.codRequired && d.status?.toLowerCase() === 'pending')
         .reduce((sum: number, d: any) => sum + (Number(d.codAmount) || 0), 0) || 0;
 
     const zone = routeData?.zone || 'Not Assigned';
     const vehicle = routeData?.vehicleInfo || 'Not Assigned';
 
-    const isRouteCompleted = packageCount > 0 && completedCount === packageCount;
+    const isRouteCompleted = stops.length > 0 && completedCount === stops.length;
     const isRouteStarted = completedCount > 0;
 
-    const handleStartRoute = () => {
-        if (!isOnDuty) {
-            // Auto clock-in if trying to start route
-            timeTracker.clockIn();
+    const handleButtonClick = () => {
+        if (!hasRoute && onStartRoute) {
+            // No route - start route scanning
+            if (!isOnDuty) {
+                timeTracker.clockIn();
+            }
+            onStartRoute();
+        } else {
+            // Has route - continue to route list
+            if (!isOnDuty) {
+                timeTracker.clockIn();
+            }
+            onNavigate('route');
         }
-        onNavigate('route');
     };
 
-    let buttonText = 'Start Route';
-    if (isRouteCompleted) {
-        buttonText = 'Route Completed';
-    } else if (isRouteStarted) {
-        buttonText = 'Continue Route';
+    // Determine button text
+    let buttonText = 'Scan Route QR';
+    let showQrIcon = true;
+    if (hasRoute) {
+        showQrIcon = false;
+        if (isRouteCompleted) {
+            buttonText = 'Route Completed';
+        } else if (isRouteStarted) {
+            buttonText = 'Continue Route';
+        } else {
+            buttonText = 'Start Route';
+        }
     }
 
-    // Always enable button unless route completed
-    const isButtonDisabled = isRouteCompleted;
+    const isButtonDisabled = hasRoute && isRouteCompleted;
 
     return (
         <div className="min-h-screen bg-background pb-32 font-sans">
@@ -134,18 +158,19 @@ export function Dashboard({ onNavigate, routeData }: DashboardProps) {
             {/* Bottom Action Button - Elevated to avoid overlap */}
             <div className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] left-0 right-0 px-6 z-30">
                 <button
-                    onClick={handleStartRoute}
+                    onClick={handleButtonClick}
                     disabled={isButtonDisabled}
-                    className={`w-full py-5 rounded-[2rem] font-bold text-lg shadow-xl transition-all ${!isButtonDisabled
+                    className={`w-full py-5 rounded-[2rem] font-bold text-lg shadow-xl transition-all flex items-center justify-center ${!isButtonDisabled
                         ? 'bg-primary text-white hover:bg-black/90'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         }`}
                 >
+                    {showQrIcon && <QrCode className="w-6 h-6 mr-2" />}
                     {buttonText}
                 </button>
             </div>
 
-            <TabBar currentTab="home" onNavigate={onNavigate} disabled={!isOnDuty} />
+            <TabBar currentTab="home" onNavigate={onNavigate} disabled={!isOnDuty} hasRoute={!!hasRoute} />
         </div>
     );
 }

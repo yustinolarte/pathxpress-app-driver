@@ -1,4 +1,4 @@
-import { ArrowLeft, Camera, MessageSquare, Phone, Package, MapPin, Settings, Navigation, ChevronRight, User, Check } from 'lucide-react';
+import { ArrowLeft, Camera, MessageSquare, Phone, Package, MapPin, Settings, Navigation, ChevronRight, User, Check, QrCode } from 'lucide-react';
 import { TabBar } from './TabBar';
 import { PODCapture } from './PODCapture';
 import { DeliveryMiniMap } from './DeliveryMiniMap';
@@ -6,6 +6,7 @@ import { QuickMessage } from './QuickMessage';
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../services/api';
 import { timeTracker } from '../services/timeTracker';
+import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
 
 interface DeliveryDetailProps {
   onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
@@ -21,9 +22,22 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
 
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [actionTaken, setActionTaken] = useState(false);
+
+  // Create derived state for completion to handle both initial load and immediate updates
+  const isCompleted = (() => {
+    if (actionTaken) return true;
+    if (!routeData) return false;
+    const stops = routeData?.stops || routeData?.deliveries || [];
+    const stop = stops.find((d: any) => d.id === deliveryId);
+    const status = stop?.status?.toLowerCase();
+    // Added 'attempted' to the list
+    return ['delivered', 'picked_up', 'returned', 'cancelled', 'attempted'].includes(status);
+  })();
   const [showPODCapture, setShowPODCapture] = useState(false);
   const [showQuickMessage, setShowQuickMessage] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
   const sliderBtnRef = useRef<HTMLDivElement>(null);
 
@@ -34,31 +48,42 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
     }
   }, [deliveryId]);
 
-  // Find delivery from routeData or use mock fallback
-  const foundDelivery = routeData?.deliveries?.find((d: any) => d.id === deliveryId);
+  // Find stop from routeData (check stops first, then deliveries for backward compat)
+  const stops = routeData?.stops || routeData?.deliveries || [];
+  const foundStop = stops.find((d: any) => d.id === deliveryId);
 
-  const delivery = foundDelivery ? {
-    name: foundDelivery.customerName || 'Unknown Customer',
-    phone: foundDelivery.phone || '+971 50 000 0000',
-    address: foundDelivery.address || 'No Address',
-    weight: foundDelivery.weight || '1.0 kg',
-    dimensions: foundDelivery.dimensions || '10 x 10 x 10 cm',
-    reference: foundDelivery.reference || `PKG-${foundDelivery.id}`,
-    cod: foundDelivery.codAmount ? `${foundDelivery.codAmount} AED` : 'Prepaid',
-    lat: foundDelivery.latitude || foundDelivery.coordinates?.lat || 0,
-    lng: foundDelivery.longitude || foundDelivery.coordinates?.lng || 0,
-    type: foundDelivery.codAmount ? 'COD' : 'Prepaid'
+  // Determine if this is a pickup or delivery
+  const isPickup = foundStop?.stopType === 'pickup';
+
+  const delivery = foundStop ? {
+    name: foundStop.contactName || foundStop.customerName || 'Unknown',
+    phone: foundStop.contactPhone || foundStop.customerPhone || foundStop.phone || '+971 50 000 0000',
+    address: foundStop.address || 'No Address',
+    weight: foundStop.weight || '1.0 kg',
+    dimensions: foundStop.dimensions || '10 x 10 x 10 cm',
+    reference: foundStop.waybillNumber || foundStop.packageRef || foundStop.reference || `PKG-${foundStop.id}`,
+    cod: foundStop.codAmount ? `${foundStop.codAmount} AED` : 'Prepaid',
+    lat: foundStop.latitude || foundStop.coordinates?.lat || 0,
+    lng: foundStop.longitude || foundStop.coordinates?.lng || 0,
+    type: foundStop.codRequired || foundStop.codAmount ? 'COD' : 'Prepaid',
+    // Shipper info for pickups
+    shipperName: foundStop.shipperName,
+    shipperPhone: foundStop.shipperPhone,
+    shipperAddress: foundStop.shipperAddress,
+    // Customer info for deliveries
+    customerName: foundStop.customerName,
+    customerPhone: foundStop.customerPhone,
   } : {
-    name: 'Fatima Al Mansoori',
-    phone: '+971 50 123 4567',
-    address: 'Palm Jumeirah, Villa 234, Frond N, Dubai',
-    weight: '2.5 kg',
-    dimensions: '30 x 20 x 15 cm',
-    reference: 'PKG-2024-001234',
-    cod: '245.00 AED',
+    name: 'Unknown',
+    phone: '+971 50 000 0000',
+    address: 'No Address',
+    weight: '1.0 kg',
+    dimensions: '10 x 10 x 10 cm',
+    reference: 'PKG-0000',
+    cod: 'Prepaid',
     lat: 25.1124,
     lng: 55.1390,
-    type: 'COD'
+    type: 'Prepaid'
   };
 
   const handlePhotoClick = () => {
@@ -80,7 +105,8 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
     if (!deliveryId) return;
 
     try {
-      await api.updateDeliveryStatus(
+      // Use the new stops endpoint
+      await api.updateStopStatus(
         deliveryId,
         status,
         authToken,
@@ -88,6 +114,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
         ''
       );
 
+      setActionTaken(true); // Immediate local update
       onDeliveryUpdate(deliveryId, status);
 
       // Delay navigation to show success state
@@ -96,13 +123,53 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
       }, 500);
 
     } catch (error) {
-      console.error('Error updating delivery (likely due to mock data/backend conn):', error);
-      // For testing/mock purposes, we proceed even if API fails
-      // alert('Failed to update delivery. Please try again.'); 
+      console.error('Error updating status:', error);
       onDeliveryUpdate(deliveryId, status);
       setTimeout(() => {
         onNavigate('route');
       }, 500);
+    }
+  };
+
+  // Handle barcode scan for pickups
+  const handleScanPickup = async () => {
+    try {
+      setScanError(null);
+
+      // Check permission
+      const { camera } = await BarcodeScanner.checkPermissions();
+      if (camera !== 'granted') {
+        const permResult = await BarcodeScanner.requestPermissions();
+        if (permResult.camera !== 'granted') {
+          setScanError('Camera permission required');
+          return;
+        }
+      }
+
+      setIsScanning(true);
+      const { barcodes } = await BarcodeScanner.scan();
+      setIsScanning(false);
+
+      if (barcodes.length > 0) {
+        const scannedCode = barcodes[0].rawValue;
+
+        // Verify scanned code matches this package
+        if (scannedCode === delivery.reference) {
+          // End timer and mark as picked up
+          if (deliveryId) {
+            timeTracker.endStop(deliveryId);
+          }
+          setActionTaken(true);
+          updateStatus('PICKED_UP');
+        } else {
+          setScanError(`Wrong package! Expected: ${delivery.reference}`);
+        }
+      }
+    } catch (err: any) {
+      setIsScanning(false);
+      if (!err.message?.includes('canceled')) {
+        setScanError('Failed to scan barcode');
+      }
     }
   };
 
@@ -134,7 +201,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
       clientX = (e as React.MouseEvent).clientX;
     }
 
-    const maxDrag = sliderRect.width - btnRect.width - 8; // 8px padding
+    const maxDrag = sliderRect.width - btnRect.width - 8;
     let newDragX = clientX - sliderRect.left - (btnRect.width / 2);
 
     newDragX = Math.max(0, Math.min(newDragX, maxDrag));
@@ -152,28 +219,32 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
 
     if (dragX > threshold) {
       setDragX(maxDrag);
-      // Instead of directly marking delivered, show POD capture
-      setShowPODCapture(true);
-      setDragX(0); // Reset slider
+      if (isPickup) {
+        // For pickups, trigger scan instead of POD capture
+        handleScanPickup();
+        setDragX(0);
+      } else {
+        // For deliveries, show POD capture
+        setShowPODCapture(true);
+        setDragX(0);
+      }
     } else {
       setDragX(0);
     }
   };
 
   const handlePODComplete = (podData: any) => {
-    // End the stop timer
     if (deliveryId) {
       timeTracker.endStop(deliveryId);
     }
     setShowPODCapture(false);
-    setIsCompleted(true);
-    // Use stamped photo or signature as proof
+    setActionTaken(true);
     updateStatus('DELIVERED', podData.photoWithStamp || podData.signature || undefined);
   };
 
   useEffect(() => {
     if (isDragging) {
-      document.body.style.overflow = 'hidden'; // Prevent scroll while dragging
+      document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
@@ -197,6 +268,10 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
           <button onClick={() => onNavigate('route')} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
             <ArrowLeft className="w-5 h-5 text-black" />
           </button>
+          {/* Pickup/Delivery indicator */}
+          <div className={`px-4 py-2 rounded-full font-bold text-sm ${isPickup ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+            {isPickup ? 'PICKUP' : 'DELIVERY'}
+          </div>
         </div>
       </div>
 
@@ -207,17 +282,20 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
 
         <div className="flex justify-between items-start mb-4 flex-shrink-0">
           <div>
-            <span className="text-gray-400 font-bold text-xs uppercase tracking-widest block mb-1">
-              Drop Off #{deliveryId}
+            <span className="text-gray-400 font-bold text-xs uppercase tracking-widest block mb-1 flex items-center gap-1">
+              {isPickup ? <Package className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+              {isPickup ? 'Pickup' : 'Drop Off'} #{deliveryId}
             </span>
             <h2 className="text-2xl font-bold font-heading text-gray-900 leading-tight">
-              {delivery.type} Order
+              {isPickup ? 'Pickup Order' : `${delivery.type} Order`}
             </h2>
           </div>
-          <div className="text-right">
-            <span className="block text-xl font-bold font-heading text-primary">{delivery.cod !== 'Prepaid' ? delivery.cod : 'Paid'}</span>
-            <span className="text-gray-400 text-xs font-medium">Amount to Collect</span>
-          </div>
+          {!isPickup && (
+            <div className="text-right">
+              <span className="block text-xl font-bold font-heading text-primary">{delivery.cod !== 'Prepaid' ? delivery.cod : 'Paid'}</span>
+              <span className="text-gray-400 text-xs font-medium">Amount to Collect</span>
+            </div>
+          )}
         </div>
 
         {/* Details List */}
@@ -227,7 +305,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
               <User className="w-5 h-5 text-accent-purple-foreground" />
             </div>
             <div>
-              <h4 className="font-bold text-gray-900">Client</h4>
+              <h4 className="font-bold text-gray-900">{isPickup ? 'Shipper' : 'Client'}</h4>
               <p className="text-gray-500 text-sm">{delivery.name}</p>
             </div>
           </div>
@@ -237,7 +315,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
               <MapPin className="w-5 h-5 text-gray-600" />
             </div>
             <div>
-              <h4 className="font-bold text-gray-900">Address</h4>
+              <h4 className="font-bold text-gray-900">{isPickup ? 'Pickup Address' : 'Delivery Address'}</h4>
               <p className="text-gray-500 text-sm leading-relaxed">{delivery.address}</p>
             </div>
           </div>
@@ -248,10 +326,23 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
             </div>
             <div>
               <h4 className="font-bold text-gray-900">Package Details</h4>
-              <p className="text-gray-500 text-sm">{delivery.weight} • {delivery.dimensions}</p>
-              <p className="text-gray-400 text-xs mt-1">{delivery.reference}</p>
+              <p className="text-gray-500 text-sm">{delivery.weight}</p>
+              <p className="text-gray-400 text-xs mt-1 font-mono">{delivery.reference}</p>
             </div>
           </div>
+
+          {/* Scan Error Message */}
+          {scanError && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+              <p className="text-red-600 font-medium">{scanError}</p>
+              <button
+                onClick={() => setScanError(null)}
+                className="text-red-500 text-sm mt-2"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons Row */}
@@ -269,53 +360,80 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
           </button>
         </div>
 
-        {/* Slide to Complete (Functional Slider) */}
-        <div className="mt-auto flex-shrink-0 pb-[calc(2rem+env(safe-area-inset-bottom))]">
-          <div
-            ref={sliderRef}
-            className={`relative w-full h-16 rounded-[2rem] flex items-center px-1 mb-6 transition-colors shadow-lg ${isCompleted ? 'bg-green-500' : 'bg-black'}`}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleTouchStart}
-            onMouseMove={handleTouchMove}
-            onMouseUp={handleTouchEnd}
-            onMouseLeave={handleTouchEnd}
-          >
-            {/* Text behind the slider */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span className={`font-bold text-lg transition-opacity ${isCompleted ? 'text-white' : 'text-white/40'}`}>
-                {isCompleted ? 'Completed!' : 'Slide to complete'}
-              </span>
-            </div>
-
-            {/* Slider Button */}
-            <div
-              ref={sliderBtnRef}
-              style={{ transform: `translateX(${dragX}px)` }}
-              className={`absolute left-1 w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-md transition-transform duration-75 cursor-grap z-10 ${isDragging ? 'scale-105' : 'scale-100'}`}
+        {/* Pickup: Scan Button instead of Slider */}
+        {isPickup ? (
+          <div className="mt-auto flex-shrink-0 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+            <button
+              onClick={handleScanPickup}
+              disabled={isCompleted || isScanning}
+              className={`w-full py-5 rounded-[2rem] font-bold text-lg shadow-xl flex items-center justify-center gap-3 transition-all ${isCompleted
+                ? 'bg-green-500 text-white'
+                : 'bg-orange-500 text-white hover:bg-orange-600'
+                } ${isScanning ? 'opacity-70' : ''}`}
             >
-              {isCompleted ? <Check className="w-6 h-6 text-green-600" /> : <ChevronRight className="w-6 h-6 text-black" />}
-            </div>
+              {isCompleted ? (
+                <>
+                  <Check className="w-6 h-6" />
+                  Picked Up!
+                </>
+              ) : (
+                <>
+                  <QrCode className="w-6 h-6" />
+                  {isScanning ? 'Scanning...' : 'Scan to Pickup'}
+                </>
+              )}
+            </button>
           </div>
+        ) : (
+          /* Delivery: Slide to Complete */
+          <div className="mt-auto flex-shrink-0 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+            <div
+              ref={sliderRef}
+              className={`relative w-full h-16 rounded-[2rem] flex items-center px-1 mb-6 transition-colors shadow-lg ${isCompleted ? 'bg-green-500' : 'bg-black'}`}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onMouseDown={handleTouchStart}
+              onMouseMove={handleTouchMove}
+              onMouseUp={handleTouchEnd}
+              onMouseLeave={handleTouchEnd}
+            >
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span className={`font-bold text-lg transition-opacity ${isCompleted ? 'text-white' : 'text-white/40'}`}>
+                  {isCompleted ? 'Delivered!' : 'Slide to complete'}
+                </span>
+              </div>
 
-          <div className="flex gap-2">
-            <button onClick={() => updateStatus('ATTEMPTED')} className="flex-1 py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50">
-              Mark Attempted
-            </button>
-            <button onClick={() => updateStatus('RETURNED')} className="flex-1 py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50">
-              Mark Returned
-            </button>
+              <div
+                ref={sliderBtnRef}
+                style={{ transform: `translateX(${dragX}px)` }}
+                className={`absolute left-1 w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-md transition-transform duration-75 cursor-grab z-10 ${isDragging ? 'scale-105' : 'scale-100'}`}
+              >
+                {isCompleted ? <Check className="w-6 h-6 text-green-600" /> : <ChevronRight className="w-6 h-6 text-black" />}
+              </div>
+            </div>
+
+            {/* Only show these actions if NOT completed */}
+            {!isCompleted && (
+              <div className="flex gap-2">
+                <button onClick={() => updateStatus('ATTEMPTED')} className="flex-1 py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50">
+                  Mark Attempted
+                </button>
+                <button onClick={() => updateStatus('RETURNED')} className="flex-1 py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50">
+                  Mark Returned
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
-      {/* POD Capture Modal */}
-      {showPODCapture && deliveryId && (
+      {/* POD Capture Modal (only for deliveries) */}
+      {showPODCapture && deliveryId && !isPickup && (
         <PODCapture
           deliveryId={deliveryId}
           customerName={delivery.name}
-          deliveryType={delivery.type} // Pass delivery type (COD or Prepaid)
+          deliveryType={delivery.type}
           onComplete={handlePODComplete}
           onCancel={() => {
             setShowPODCapture(false);

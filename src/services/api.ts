@@ -171,5 +171,46 @@ export const api = {
             throw new Error('Request failed');
         }
         return response.json();
+    },
+
+    // Pickups - mark waybill as picked up
+    markPickedUp: async (waybillNumber: string, token: string) => {
+        const response = await fetch(`${API_URL}/pickups/${waybillNumber}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error || 'Failed to mark as picked up');
+        }
+
+        return response.json();
+    },
+
+    // Update stop status (works for both pickups and deliveries)
+    updateStopStatus: async (stopId: number, status: string, token: string, photo?: string, notes?: string) => {
+        const response = await fetch(`${API_URL}/stops/${stopId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                status,
+                photoBase64: photo,
+                notes
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error || 'Failed to update stop status');
+        }
+
+        return response.json();
     }
 };

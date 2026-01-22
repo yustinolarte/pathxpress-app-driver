@@ -8,6 +8,7 @@ import { api } from '../services/api';
 interface ReportIssueProps {
   onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
   authToken: string;
+  hasRoute?: boolean;
 }
 
 const issueTypes = [
@@ -18,7 +19,7 @@ const issueTypes = [
   { id: 'other', label: 'Other', icon: AlertCircle },
 ];
 
-export function ReportIssue({ onNavigate, authToken }: ReportIssueProps) {
+export function ReportIssue({ onNavigate, authToken, hasRoute }: ReportIssueProps) {
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
@@ -211,7 +212,7 @@ export function ReportIssue({ onNavigate, authToken }: ReportIssueProps) {
         </button>
       </div>
 
-      <TabBar currentTab="home" onNavigate={onNavigate} />
+      <TabBar currentTab="report" onNavigate={onNavigate} hasRoute={hasRoute} />
     </div>
   );
 }

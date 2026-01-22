@@ -132,36 +132,103 @@ export default function App() {
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [driverInfo, setDriverInfo] = useState<any>(null);
 
+  // Loading state to prevent rendering before state restoration is complete
+  const [isInitializing, setIsInitializing] = useState(true);
+
   // Load state from localStorage on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('authToken');
-    const storedDriver = localStorage.getItem('driverInfo');
-    const storedRoute = localStorage.getItem('routeData');
-    const storedInspection = localStorage.getItem('inspectionComplete');
+    const restoreSession = async () => {
+      try {
+        const storedToken = localStorage.getItem('authToken');
+        const storedDriver = localStorage.getItem('driverInfo');
+        const storedRoute = localStorage.getItem('routeData');
+        const storedInspection = localStorage.getItem('inspectionComplete');
 
-    if (storedToken && storedDriver) {
-      setAuthToken(storedToken);
-      setDriverInfo(JSON.parse(storedDriver));
-      setIsLoggedIn(true);
-      // We keep currentScreen as is (mocked) or update if needed, but for now let's rely on the mock state 
-      // unless we want real persistence to override. 
-      // If we seek "full app", let's prioritize the mocked state if no storage, or storage state if exists.
+        // Validate stored data before using
+        if (storedToken && storedDriver) {
+          let parsedDriver;
+          try {
+            parsedDriver = JSON.parse(storedDriver);
+          } catch (e) {
+            console.error('Failed to parse stored driver info, clearing session');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('driverInfo');
+            localStorage.removeItem('routeData');
+            localStorage.removeItem('inspectionComplete');
+            setIsInitializing(false);
+            return;
+          }
 
-      // Actually, to force the "hidden" behavior as requested, we should probably stick to the mocked values
-      // or ensure that even if we load from storage, we are in a valid state.
-      // But for a dev request like "hide login/scan", usually we just want to force it open.
+          // Validate token is still valid by checking with the server
+          try {
+            await api.getDriverProfile(storedToken);
+          } catch (e) {
+            console.error('Token validation failed, session expired');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('driverInfo');
+            localStorage.removeItem('routeData');
+            localStorage.removeItem('inspectionComplete');
+            setIsInitializing(false);
+            return;
+          }
 
-      if (storedRoute) {
-        const parsedRoute = JSON.parse(storedRoute);
-        setRouteData(parsedRoute);
-        setRouteScanned(true);
+          setAuthToken(storedToken);
+          setDriverInfo(parsedDriver);
+          setIsLoggedIn(true);
 
-        if (storedInspection === 'true') {
-          setInspectionComplete(true);
+          if (storedRoute) {
+            let parsedRoute;
+            try {
+              parsedRoute = JSON.parse(storedRoute);
+            } catch (e) {
+              console.error('Failed to parse stored route, going to scanner');
+              localStorage.removeItem('routeData');
+              localStorage.removeItem('inspectionComplete');
+              setCurrentScreen('scanner');
+              setIsInitializing(false);
+              return;
+            }
+
+            setRouteData(parsedRoute);
+            setRouteScanned(true);
+
+            if (storedInspection === 'true') {
+              setInspectionComplete(true);
+              setCurrentScreen('dashboard');
+            } else {
+              setCurrentScreen('inspection');
+            }
+          } else {
+            // NEW: Go to dashboard even without a route
+            setCurrentScreen('dashboard');
+          }
         }
+      } catch (error) {
+        console.error('Error restoring session:', error);
+        // Clear all storage on error to prevent stuck state
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('driverInfo');
+        localStorage.removeItem('routeData');
+        localStorage.removeItem('inspectionComplete');
+      } finally {
+        setIsInitializing(false);
       }
-    }
+    };
+
+    restoreSession();
   }, []);
+
+  // Show loading screen while initializing to prevent white screen
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleLogin = (token: string, driver: any) => {
     setIsLoggedIn(true);
@@ -169,7 +236,8 @@ export default function App() {
     setDriverInfo(driver);
     localStorage.setItem('authToken', token);
     localStorage.setItem('driverInfo', JSON.stringify(driver));
-    setCurrentScreen('scanner');
+    // NEW: Go to dashboard instead of scanner
+    setCurrentScreen('dashboard');
   };
 
   const handleScanComplete = (data: any) => {
@@ -183,6 +251,11 @@ export default function App() {
     setInspectionComplete(true);
     localStorage.setItem('inspectionComplete', 'true');
     setCurrentScreen('dashboard');
+  };
+
+  // NEW: Handler to start route scanning from dashboard
+  const handleStartRoute = () => {
+    setCurrentScreen('scanner');
   };
 
   const handleNavigate = (screen: typeof currentScreen) => {
@@ -215,31 +288,39 @@ export default function App() {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
-  if (!routeScanned) {
+  // NEW: If on scanner screen, show it
+  if (currentScreen === 'scanner') {
     return <ScannerScreen onScanComplete={handleScanComplete} authToken={authToken!} />;
   }
 
-  if (!inspectionComplete) {
+  // NEW: If route scanned but inspection not complete, show inspection
+  if (routeScanned && !inspectionComplete && currentScreen === 'inspection') {
     return <VehicleInspection onComplete={handleInspectionComplete} authToken={authToken!} driverInfo={driverInfo} routeData={routeData} />;
   }
 
   const handleDeliveryUpdate = (deliveryId: number, status: string) => {
     if (!routeData) return;
 
-    const updatedDeliveries = routeData.deliveries.map((d: any) => {
+    const updatedStops = (routeData.stops || routeData.deliveries).map((d: any) => {
       if (d.id === deliveryId) {
         let newStatus = 'pending';
         // Normalize status to what RouteList expects
         if (status === 'DELIVERED') newStatus = 'Delivered';
         if (status === 'ATTEMPTED') newStatus = 'Attempted';
         if (status === 'RETURNED') newStatus = 'Returned';
+        if (status === 'PICKED_UP') newStatus = 'Picked Up';
 
         return { ...d, status: newStatus };
       }
       return d;
     });
 
-    const newRouteData = { ...routeData, deliveries: updatedDeliveries };
+    // Update both stops and deliveries to keep them in sync, as RouteList checks stops first
+    const newRouteData = {
+      ...routeData,
+      stops: updatedStops,
+      deliveries: updatedStops
+    };
     setRouteData(newRouteData);
     localStorage.setItem('routeData', JSON.stringify(newRouteData));
   };
@@ -255,11 +336,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background">
-      {currentScreen === 'dashboard' && <Dashboard onNavigate={handleNavigate} routeData={routeData} />}
+      {currentScreen === 'dashboard' && <Dashboard onNavigate={handleNavigate} routeData={routeData} onStartRoute={handleStartRoute} hasActiveRoute={routeScanned && inspectionComplete} />}
       {currentScreen === 'route' && <RouteList onNavigate={handleNavigate} onSelectDelivery={handleSelectDelivery} routeData={routeData} authToken={authToken!} onFinishRoute={handleFinishRoute} />}
       {currentScreen === 'delivery' && <DeliveryDetail onNavigate={handleNavigate} deliveryId={selectedDelivery} routeData={routeData} authToken={authToken!} onDeliveryUpdate={handleDeliveryUpdate} />}
-      {currentScreen === 'issue' && <ReportIssue onNavigate={handleNavigate} authToken={authToken!} />}
-      {currentScreen === 'profile' && <Profile onNavigate={handleNavigate} authToken={authToken!} />}
+      {currentScreen === 'issue' && <ReportIssue onNavigate={handleNavigate} authToken={authToken!} hasRoute={routeScanned} />}
+      {currentScreen === 'profile' && <Profile onNavigate={handleNavigate} authToken={authToken!} hasRoute={routeScanned} />}
       {currentScreen === 'settings' && <Settings onNavigate={handleNavigate} onLogout={handleLogout} />}
     </div>
   );
