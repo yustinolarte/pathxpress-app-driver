@@ -30,6 +30,7 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
     // Map deliveries/stops from route data, including stopType for pickup detection
     const deliveries = (routeData?.stops || routeData?.deliveries)?.map((d: any) => ({
         id: d.id,
+        orderId: d.orderId, // Track orderId for pickup/delivery linking
         name: d.contactName || d.customerName || 'Unknown',
         address: d.address || 'No Address',
         distance: '0.0 km',
@@ -42,6 +43,8 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
         lng: d.longitude || d.coordinates?.lng || 0,
         // NEW: Use stopType from API to determine if pickup or delivery
         stopType: d.stopType || 'delivery',
+        // NEW: isDisabled - delivery stops disabled until pickup is done
+        isDisabled: d.isDisabled || false,
         waybillNumber: d.waybillNumber || d.packageRef,
         contactPhone: d.contactPhone || d.customerPhone,
     })) || defaultDeliveries;
@@ -178,6 +181,7 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
             <div className="px-6 space-y-4 pt-2">
                 {sortedDeliveries.map((delivery: any) => {
                     const isCompleted = ['Delivered', 'Returned', 'Cancelled', 'Picked Up'].includes(delivery.status);
+                    const isDisabled = delivery.isDisabled && !isCompleted;
 
                     // Style logic based on card type
                     const isCOD = delivery.type === 'COD';
@@ -194,12 +198,25 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
                         accentText = 'text-accent-green-foreground';
                     }
 
+                    // Disabled styling for delivery stops awaiting pickup
+                    const disabledStyle = isDisabled ? 'opacity-50 pointer-events-none' : '';
+                    const completedStyle = isCompleted ? 'opacity-60 grayscale' : '';
+
                     return (
                         <div
                             key={delivery.id}
-                            onClick={() => !isCompleted && onSelectDelivery(delivery.id)}
-                            className={`relative bg-white rounded-[2rem] p-6 transition-all border border-gray-100 shadow-sm hover:shadow-md ${isCompleted ? 'opacity-60 grayscale' : ''}`}
+                            onClick={() => !isCompleted && !isDisabled && onSelectDelivery(delivery.id)}
+                            className={`relative bg-white rounded-[2rem] p-6 transition-all border border-gray-100 shadow-sm hover:shadow-md ${completedStyle} ${disabledStyle}`}
                         >
+                            {/* Disabled Overlay */}
+                            {isDisabled && (
+                                <div className="absolute inset-0 bg-gray-100/50 rounded-[2rem] flex items-center justify-center z-10">
+                                    <div className="bg-gray-800 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2">
+                                        🔒 Complete pickup first
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Card Header: Type Badge */}
                             <div className={`absolute top-6 right-6 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${accentColor} ${accentText}`}>
                                 {isPickup ? 'PICKUP' : (isCOD ? `COD: ${delivery.cod}` : 'DELIVERY')}
