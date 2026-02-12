@@ -7,33 +7,70 @@ interface DeliveryMiniMapProps {
     destinationLat: number;
     destinationLng: number;
     customerName: string;
+    address?: string;
     onNavigate: () => void;
 }
 
-export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, onNavigate }: DeliveryMiniMapProps) {
+export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, address, onNavigate }: DeliveryMiniMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<L.Map | null>(null);
     const driverMarkerRef = useRef<L.Marker | null>(null);
     const routeLineRef = useRef<L.Polyline | null>(null);
+    const destMarkerRef = useRef<L.Marker | null>(null);
 
     const [driverPosition, setDriverPosition] = useState<[number, number] | null>(null);
+    const [resolvedDest, setResolvedDest] = useState<[number, number] | null>(null);
     const [distance, setDistance] = useState<string>('');
     const [eta, setEta] = useState<string>('');
     const [watchId, setWatchId] = useState<string | null>(null);
+    const [mapReady, setMapReady] = useState(false);
+
+    // Check if we have valid coordinates (not 0,0 or null/undefined)
+    const hasValidCoords = destinationLat && destinationLng &&
+        Math.abs(destinationLat) > 0.001 && Math.abs(destinationLng) > 0.001;
+
+    // 0. Resolve destination: use coords or geocode address
+    useEffect(() => {
+        if (hasValidCoords) {
+            setResolvedDest([destinationLat, destinationLng]);
+            return;
+        }
+
+        // Geocode the address if no valid coords
+        if (address) {
+            const geocodeAddress = async () => {
+                try {
+                    const res = await fetch(
+                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+                    );
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        setResolvedDest([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+                    } else {
+                        // Default to Dubai center if geocoding fails
+                        setResolvedDest([25.2048, 55.2708]);
+                    }
+                } catch (err) {
+                    console.error('Geocoding error:', err);
+                    setResolvedDest([25.2048, 55.2708]);
+                }
+            };
+            geocodeAddress();
+        } else {
+            // No address and no coords — default to Dubai center
+            setResolvedDest([25.2048, 55.2708]);
+        }
+    }, [destinationLat, destinationLng, address, hasValidCoords]);
 
     // 1. Start Real-Time GPS Tracking with Capacitor
     useEffect(() => {
         const startTracking = async () => {
             try {
-                // Get initial position
                 const current = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-
-                // ARTIFICIAL PROOF DELAY: Wait 2 seconds so you can read the text
                 setTimeout(() => {
                     setDriverPosition([current.coords.latitude, current.coords.longitude]);
                 }, 2000);
 
-                // Start periodic watch
                 const id = await Geolocation.watchPosition(
                     { enableHighAccuracy: true, timeout: 10000 },
                     (position, err) => {
@@ -45,20 +82,15 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
                 setWatchId(id);
             } catch (error) {
                 console.error('Error with geolocation:', error);
-
-                // Fallback: Try web API if Capacitor fails or use a demo offset
-                // This helps in browser testing as well
                 if (navigator.geolocation) {
                     const navId = navigator.geolocation.watchPosition(
                         (pos) => setDriverPosition([pos.coords.latitude, pos.coords.longitude]),
                         (err) => console.error('Web Geo Error', err),
                         { enableHighAccuracy: true }
                     );
-                    // Store numerical ID as string to unify type
                     setWatchId(navId.toString());
-                } else {
-                    // Absolute fallback for testing only
-                    setDriverPosition([destinationLat - 0.01, destinationLng - 0.01]);
+                } else if (resolvedDest) {
+                    setDriverPosition([resolvedDest[0] - 0.01, resolvedDest[1] - 0.01]);
                 }
             }
         };
@@ -67,33 +99,27 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
 
         return () => {
             if (watchId) {
-                // Try clearing both (Capacitor string ID vs Browser Number ID)
-                try {
-                    Geolocation.clearWatch({ id: watchId });
-                } catch (e) { }
-                try {
-                    navigator.geolocation.clearWatch(Number(watchId));
-                } catch (e) { }
+                try { Geolocation.clearWatch({ id: watchId }); } catch (e) { }
+                try { navigator.geolocation.clearWatch(Number(watchId)); } catch (e) { }
             }
         };
     }, []);
 
-    // 2. Initialize Map (Run once)
+    // 2. Initialize Map (when destination is resolved)
     useEffect(() => {
-        if (!mapContainerRef.current || mapRef.current) return;
+        if (!mapContainerRef.current || mapRef.current || !resolvedDest) return;
 
-        const MAPBOX_TOKEN = 'pk.eyJ1IjoicGF0aHhwcmVzcyIsImEiOiJjbWs1eGtudnAwcjBrM2RxczF3ejJoNGJsIn0.BSdbosJMVCMBhzf7UFsgRw';
+        const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
         const map = L.map(mapContainerRef.current, {
-            center: [destinationLat, destinationLng],
+            center: resolvedDest,
             zoom: 14,
             zoomControl: false,
-            attributionControl: true, // Required for commercial use
+            attributionControl: true,
             dragging: true,
             scrollWheelZoom: false,
         });
 
-        // Mapbox Streets v12 Style
         L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`, {
             tileSize: 512,
             zoomOffset: -1,
@@ -111,26 +137,28 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
             iconAnchor: [20, 40]
         });
 
-        L.marker([destinationLat, destinationLng], { icon: destIcon }).addTo(map);
+        destMarkerRef.current = L.marker(resolvedDest, { icon: destIcon }).addTo(map);
         mapRef.current = map;
+        setMapReady(true);
 
         return () => {
             map.remove();
             mapRef.current = null;
+            destMarkerRef.current = null;
+            setMapReady(false);
         };
-    }, [destinationLat, destinationLng]);
+    }, [resolvedDest]);
 
 
     // 3. Update Driver Marker, Route, and Metrics when position changes
     useEffect(() => {
-        if (!mapRef.current || !driverPosition) return;
+        if (!mapRef.current || !driverPosition || !resolvedDest) return;
         const map = mapRef.current;
 
         // --- Driver Marker ---
         if (driverMarkerRef.current) {
             driverMarkerRef.current.setLatLng(driverPosition);
         } else {
-            console.log("Creating new driver marker at", driverPosition);
             const driverIcon = L.divIcon({
                 className: 'driver-marker',
                 html: `<div style="width: 24px; height: 24px; background: #3b82f6; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.3);"></div>`,
@@ -142,9 +170,9 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
 
         // --- Route Line ---
         if (routeLineRef.current) {
-            routeLineRef.current.setLatLngs([driverPosition, [destinationLat, destinationLng]]);
+            routeLineRef.current.setLatLngs([driverPosition, resolvedDest]);
         } else {
-            routeLineRef.current = L.polyline([driverPosition, [destinationLat, destinationLng]], {
+            routeLineRef.current = L.polyline([driverPosition, resolvedDest], {
                 color: '#3b82f6',
                 weight: 4,
                 opacity: 0.8,
@@ -153,28 +181,27 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
         }
 
         // --- Fit Bounds ---
-        const bounds = L.latLngBounds([driverPosition, [destinationLat, destinationLng]]);
+        const bounds = L.latLngBounds([driverPosition, resolvedDest]);
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
 
         // --- ETA Calculations ---
-        const R = 6371; // Earth's radius in km
-        const dLat = (destinationLat - driverPosition[0]) * Math.PI / 180;
-        const dLon = (destinationLng - driverPosition[1]) * Math.PI / 180;
+        const R = 6371;
+        const dLat = (resolvedDest[0] - driverPosition[0]) * Math.PI / 180;
+        const dLon = (resolvedDest[1] - driverPosition[1]) * Math.PI / 180;
         const a =
             Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(driverPosition[0] * Math.PI / 180) * Math.cos(destinationLat * Math.PI / 180) *
+            Math.cos(driverPosition[0] * Math.PI / 180) * Math.cos(resolvedDest[0] * Math.PI / 180) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distanceKm = R * c;
 
         setDistance(distanceKm < 1 ? `${(distanceKm * 1000).toFixed(0)} m` : `${distanceKm.toFixed(1)} km`);
 
-        // Assume slightly slower speed for real traffic: 25 km/h
         const speedKmh = 25;
         const etaMinutes = Math.ceil((distanceKm / speedKmh) * 60);
         setEta(`${etaMinutes} min`);
 
-    }, [driverPosition, destinationLat, destinationLng]);
+    }, [driverPosition, resolvedDest]);
 
 
     return (
@@ -182,7 +209,7 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
             {/* Map Container */}
             <div ref={mapContainerRef} className="w-full h-full text-left" style={{ zIndex: 0 }} />
 
-            {/* NEW: Compact ETA Pill (Top Center) */}
+            {/* Compact ETA Pill (Top Center) */}
             {eta && (
                 <div className="absolute top-4 left-0 right-0 flex justify-center z-[500] pointer-events-none">
                     <div className="bg-black/80 backdrop-blur-md text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 pointer-events-auto">
@@ -193,7 +220,7 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
                 </div>
             )}
 
-            {/* NEW: Navigation FAB (Bottom Right) */}
+            {/* Navigation FAB (Bottom Right) */}
             <div className="absolute bottom-4 right-4 z-[500]">
                 <button
                     onClick={onNavigate}
@@ -204,7 +231,7 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
             </div>
 
             {/* Loading State */}
-            {!driverPosition && (
+            {(!driverPosition || !resolvedDest) && (
                 <div className="absolute inset-0 bg-gray-100/80 flex items-center justify-center z-[800]">
                     <div className="text-center">
                         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>

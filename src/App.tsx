@@ -5,7 +5,7 @@ import { VehicleInspection } from './components/VehicleInspection';
 import { Dashboard } from './components/Dashboard';
 import { RouteList } from './components/RouteList';
 import { DeliveryDetail } from './components/DeliveryDetail';
-import { ReportIssue } from './components/ReportIssue';
+
 import { Profile } from './components/Profile';
 import { Settings } from './components/Settings';
 import { api } from './services/api';
@@ -119,7 +119,7 @@ const MOCK_ROUTE = {
 
 export default function App() {
   // Start at login screen - REAL FLOW ENABLED
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'scanner' | 'inspection' | 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings'>('login');
+  const [currentScreen, setCurrentScreen] = useState<'login' | 'scanner' | 'inspection' | 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings'>('login');
   const [selectedDelivery, setSelectedDelivery] = useState<number | null>(null);
 
   // Default to false - require real login and scanning
@@ -305,12 +305,13 @@ export default function App() {
       // Update the modified stop
       if (d.id === deliveryId) {
         let newStatus = 'pending';
-        if (status === 'DELIVERED') newStatus = 'Delivered';
-        if (status === 'ATTEMPTED') newStatus = 'Attempted';
-        if (status === 'RETURNED') newStatus = 'Returned';
-        if (status === 'PICKED_UP') newStatus = 'Picked Up';
-        if (status === 'FAILED') newStatus = 'Failed';
-        if (status === 'ON_HOLD') newStatus = 'On Hold';
+        const normalizedStatus = status.toLowerCase();
+        if (normalizedStatus === 'delivered') newStatus = 'delivered';
+        if (normalizedStatus === 'attempted') newStatus = 'attempted';
+        if (normalizedStatus === 'returned') newStatus = 'returned';
+        if (normalizedStatus === 'picked_up') newStatus = 'picked_up';
+        if (normalizedStatus === 'failed') newStatus = 'failed';
+        if (normalizedStatus === 'on_hold') newStatus = 'on_hold';
         return { ...d, status: newStatus };
       }
       return d;
@@ -318,7 +319,8 @@ export default function App() {
 
     // Handling dependent stops (Unlock delivery if pickup is completed)
     const modifiedStop = updatedStops.find((d: any) => d.id === deliveryId);
-    if (modifiedStop && modifiedStop.stopType === 'pickup' && modifiedStop.status === 'Picked Up') {
+    if (modifiedStop && modifiedStop.stopType === 'pickup' &&
+      (modifiedStop.status === 'picked_up' || modifiedStop.status === 'PICKED_UP' || modifiedStop.status === 'Picked Up')) {
       const orderId = modifiedStop.orderId;
       // Find corresponding delivery stop and unlock it
       updatedStops = updatedStops.map((d: any) => {
@@ -353,7 +355,7 @@ export default function App() {
       {currentScreen === 'dashboard' && <Dashboard onNavigate={handleNavigate} routeData={routeData} onStartRoute={handleStartRoute} hasActiveRoute={routeScanned && inspectionComplete} />}
       {currentScreen === 'route' && <RouteList onNavigate={handleNavigate} onSelectDelivery={handleSelectDelivery} routeData={routeData} authToken={authToken!} onFinishRoute={handleFinishRoute} />}
       {currentScreen === 'delivery' && <DeliveryDetail onNavigate={handleNavigate} deliveryId={selectedDelivery} routeData={routeData} authToken={authToken!} onDeliveryUpdate={handleDeliveryUpdate} />}
-      {currentScreen === 'issue' && <ReportIssue onNavigate={handleNavigate} authToken={authToken!} hasRoute={routeScanned} />}
+
       {currentScreen === 'profile' && <Profile onNavigate={handleNavigate} authToken={authToken!} hasRoute={routeScanned} />}
       {currentScreen === 'settings' && <Settings onNavigate={handleNavigate} onLogout={handleLogout} />}
     </div>

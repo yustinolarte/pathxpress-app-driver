@@ -1,4 +1,4 @@
-import { X, MessageSquare, Car, DoorOpen, PhoneMissed, Edit3 } from 'lucide-react';
+import { X, MessageSquare, Car, DoorOpen, PhoneMissed, Edit3, MapPin } from 'lucide-react';
 import { useState } from 'react';
 
 interface QuickMessageProps {
@@ -12,9 +12,17 @@ const messageTemplates = [
         id: 'on_way',
         icon: Car,
         label: 'On my way',
-        message: 'Hello! I am on my way with your PathXpress delivery. I will arrive in approximately 5-10 minutes.',
+        message: 'Hello! I am on my way with your PathXpress delivery. I will arrive in approximately 30 minutes.',
         color: 'bg-blue-100',
         iconColor: 'text-blue-600',
+    },
+    {
+        id: 'share_location',
+        icon: MapPin,
+        label: 'Request location',
+        message: 'Hello! I am your PathXpress driver. Could you please share your location pin on WhatsApp so I can find you easily? Just tap the + button, select Location, and send your pin. Thank you!',
+        color: 'bg-purple-100',
+        iconColor: 'text-purple-600',
     },
     {
         id: 'at_door',
@@ -178,8 +186,8 @@ export function QuickMessage({ customerName, customerPhone, onClose }: QuickMess
                             onClick={handleSendCustom}
                             disabled={!customMessage.trim()}
                             className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${customMessage.trim()
-                                    ? 'bg-green-500 text-white'
-                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                 }`}
                         >
                             <MessageSquare className="w-5 h-5" />

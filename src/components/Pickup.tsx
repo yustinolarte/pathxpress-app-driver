@@ -5,7 +5,7 @@ import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
 import { TabBar } from './TabBar';
 
 interface PickupProps {
-    onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings' | 'pickup') => void;
+    onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings' | 'pickup') => void;
     authToken: string;
 }
 
@@ -184,7 +184,7 @@ export function Pickup({ onNavigate, authToken }: PickupProps) {
                 </div>
             )}
 
-            <TabBar currentTab="pickup" onNavigate={onNavigate} />
+            <TabBar currentTab="route" onNavigate={onNavigate} />
         </div>
     );
 }

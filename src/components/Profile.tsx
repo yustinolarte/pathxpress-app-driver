@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 
 interface ProfileProps {
-  onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
+  onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings') => void;
   authToken: string;
   hasRoute?: boolean;
 }

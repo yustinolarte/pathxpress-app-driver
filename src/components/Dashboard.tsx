@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { timeTracker, TimeTrackerState } from '../services/timeTracker';
 
 interface DashboardProps {
-    onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
+    onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings') => void;
     routeData?: any;
     onStartRoute?: () => void; // Called to start route scanning
     hasActiveRoute?: boolean; // True if route is scanned and inspection complete
@@ -32,27 +32,61 @@ export function Dashboard({ onNavigate, routeData, onStartRoute, hasActiveRoute 
     // Check if we have an active route
     const hasRoute = hasActiveRoute && routeData;
 
-    const packageCount = routeData?.deliveries?.length || 0;
     const routeId = routeData?.id || routeData?.routeId || 'No Route';
 
-    // Count pickups and deliveries separately
-    const stops = routeData?.stops || routeData?.deliveries || [];
-    const pickupCount = stops.filter((s: any) => s.stopType === 'pickup').length;
-    const deliveryCount = stops.filter((s: any) => s.stopType === 'delivery' || !s.stopType).length;
+    // Raw stops from API
+    const stopsRaw = routeData?.stops || routeData?.deliveries || [];
 
-    const completedCount = stops.filter((d: any) =>
-        ['DELIVERED', 'PICKED_UP', 'RETURNED', 'COMPLETED', 'completed', 'Delivered', 'Returned', 'Picked Up', 'FAILED', 'Failed', 'ATTEMPTED', 'Attempted'].includes(d.status)
-    ).length || 0;
+    // Group by orderId to match RouteList's "Unified Package View"
+    // Each order = 1 task for the driver, regardless of pickup+delivery stops
+    const ordersMap: Record<string, any[]> = {};
+    stopsRaw.forEach((s: any) => {
+        const key = s.orderId ? s.orderId.toString() : `-${s.id}`;
+        if (!ordersMap[key]) ordersMap[key] = [];
+        ordersMap[key].push(s);
+    });
 
-    const progressPercent = stops.length > 0 ? (completedCount / stops.length) * 100 : 0;
-    const codTotal = stops
-        ?.filter((d: any) => d.codRequired && d.status?.toLowerCase() === 'pending')
+    // For each order group, determine the "active" stop (same logic as RouteList)
+    const groupedStops = Object.values(ordersMap).map((orderStops: any[]) => {
+        if (orderStops.length === 1) return orderStops[0];
+
+        const pickup = orderStops.find((s: any) => s.stopType === 'pickup' || s.type === 'pickup');
+        const delivery = orderStops.find((s: any) => s.stopType === 'delivery' || s.type === 'delivery');
+
+        if (pickup && delivery) {
+            const pickupStatus = pickup.status?.toLowerCase().replace(' ', '_');
+            const isPickupDone = ['picked_up'].includes(pickupStatus);
+            if (!isPickupDone) return pickup;
+            return delivery;
+        }
+        return orderStops[0];
+    });
+
+    const packageCount = groupedStops.length;
+
+    // Count pickups and deliveries from raw stops
+    const pickupCount = stopsRaw.filter((s: any) => s.stopType === 'pickup').length;
+    const deliveryCount = stopsRaw.filter((s: any) => s.stopType === 'delivery' || !s.stopType).length;
+
+    // Count completed based on the grouped (visible) stops
+    const completedStatuses = ['delivered', 'picked_up', 'returned', 'completed', 'failed', 'attempted', 'delivery_attempted', 'failed_delivery', 'on_hold'];
+    const completedCount = groupedStops.filter((d: any) =>
+        completedStatuses.includes(d.status?.toLowerCase()?.replace(' ', '_'))
+    ).length;
+
+    const progressPercent = packageCount > 0 ? (completedCount / packageCount) * 100 : 0;
+
+    // Only sum COD for DELIVERY stops to avoid double counting
+    const codTotal = stopsRaw
+        ?.filter((d: any) => (d.codRequired || d.type === 'COD') &&
+            d.status?.toLowerCase() === 'pending' &&
+            (d.stopType === 'delivery' || d.type === 'delivery'))
         .reduce((sum: number, d: any) => sum + (Number(d.codAmount) || 0), 0) || 0;
 
     const zone = routeData?.zone || 'Not Assigned';
     const vehicle = routeData?.vehicleInfo || 'Not Assigned';
 
-    const isRouteCompleted = stops.length > 0 && completedCount === stops.length;
+    const isRouteCompleted = packageCount > 0 && completedCount === packageCount;
     const isRouteStarted = completedCount > 0;
 
     const handleButtonClick = () => {

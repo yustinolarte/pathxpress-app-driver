@@ -1,8 +1,8 @@
-import { ArrowLeft, AlertCircle, Bell, HelpCircle, LogOut, Shield } from 'lucide-react';
+import { ArrowLeft, Bell, HelpCircle, LogOut, Shield } from 'lucide-react';
 import { useState } from 'react';
 
 interface SettingsProps {
-  onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
+  onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings') => void;
   onLogout: () => void;
 }
 
@@ -11,12 +11,6 @@ export function Settings({ onNavigate, onLogout }: SettingsProps) {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const settingsOptions = [
-    {
-      category: 'Support',
-      items: [
-        { id: 'report-issue', icon: AlertCircle, label: 'Report Issue', color: 'text-red-600', bg: 'bg-red-50' },
-      ]
-    },
     {
       category: 'Preferences',
       items: [
@@ -32,9 +26,7 @@ export function Settings({ onNavigate, onLogout }: SettingsProps) {
   ];
 
   const handleItemClick = (id: string) => {
-    if (id === 'report-issue') {
-      onNavigate('issue');
-    } else if (id === 'notifications') {
+    if (id === 'notifications') {
       setNotifications(!notifications);
     } else if (id === 'privacy') {
       setShowPrivacyModal(true);

@@ -9,7 +9,7 @@ import { timeTracker } from '../services/timeTracker';
 import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
 
 interface DeliveryDetailProps {
-  onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
+  onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings') => void;
   deliveryId: number | null;
   routeData?: any;
   authToken: string;
@@ -32,7 +32,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
     const stop = stops.find((d: any) => d.id === deliveryId);
     const status = stop?.status?.toLowerCase();
     // Added 'attempted' to the list
-    return ['delivered', 'picked_up', 'returned', 'cancelled', 'attempted'].includes(status);
+    return ['delivered', 'picked_up', 'returned', 'cancelled'].includes(status);
   })();
   const [showPODCapture, setShowPODCapture] = useState(false);
   const [showQuickMessage, setShowQuickMessage] = useState(false);
@@ -162,7 +162,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
             timeTracker.endStop(deliveryId);
           }
           setActionTaken(true);
-          updateStatus('PICKED_UP');
+          updateStatus('picked_up');
         } else {
           setScanError(`Wrong package! Expected: ${delivery.reference}`);
         }
@@ -176,7 +176,10 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
   };
 
   const handleNavigateTo = () => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${delivery.lat},${delivery.lng}`;
+    const hasCoords = delivery.lat && delivery.lng && delivery.lat !== 0 && delivery.lng !== 0;
+    const url = hasCoords
+      ? `https://www.google.com/maps/dir/?api=1&destination=${delivery.lat},${delivery.lng}`
+      : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(delivery.address)}`;
     window.open(url, '_blank');
   };
 
@@ -241,7 +244,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
     }
     setShowPODCapture(false);
     setActionTaken(true);
-    updateStatus('DELIVERED', podData.photoWithStamp || podData.signature || undefined);
+    updateStatus('delivered', podData.photoWithStamp || podData.signature || undefined);
   };
 
   useEffect(() => {
@@ -262,6 +265,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
           destinationLat={delivery.lat}
           destinationLng={delivery.lng}
           customerName={delivery.name}
+          address={delivery.address}
           onNavigate={handleNavigateTo}
         />
 
@@ -418,21 +422,21 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
             {/* Only show these actions if NOT completed */}
             {!isCompleted && (
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => updateStatus('ATTEMPTED')} className="py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50 border border-gray-100">
+                <button onClick={() => updateStatus('attempted')} className="py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50 border border-gray-100">
                   Attempted
                 </button>
-                <button onClick={() => updateStatus('RETURNED')} className="py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50 border border-gray-100">
+                <button onClick={() => updateStatus('returned')} className="py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50 border border-gray-100">
                   Returned
                 </button>
                 <button onClick={() => {
                   const reason = window.prompt("Reason for failure?");
-                  if (reason !== null) updateStatus('FAILED', undefined, reason);
+                  if (reason !== null) updateStatus('failed', undefined, reason);
                 }} className="py-3 text-sm font-semibold text-red-500 hover:text-red-700 rounded-xl hover:bg-red-50 border border-red-100">
                   Failed
                 </button>
                 <button onClick={() => {
                   const reason = window.prompt("Reason/Notes for hold?");
-                  if (reason !== null) updateStatus('ON_HOLD', undefined, reason);
+                  if (reason !== null) updateStatus('on_hold', undefined, reason);
                 }} className="py-3 text-sm font-semibold text-orange-500 hover:text-orange-700 rounded-xl hover:bg-orange-50 border border-orange-100">
                   On Hold
                 </button>

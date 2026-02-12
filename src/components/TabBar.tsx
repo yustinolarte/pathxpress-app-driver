@@ -1,8 +1,8 @@
-import { Home, Route, User, AlertTriangle } from 'lucide-react';
+import { Home, Route, User } from 'lucide-react';
 
 interface TabBarProps {
-  currentTab: 'home' | 'route' | 'profile' | 'report';
-  onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
+  currentTab: 'home' | 'route' | 'profile';
+  onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings') => void;
   disabled?: boolean;
   hasRoute?: boolean;
 }
@@ -11,7 +11,6 @@ export function TabBar({ currentTab, onNavigate, disabled, hasRoute = true }: Ta
   const tabs = [
     { id: 'home' as const, icon: Home, label: 'Home', screen: 'dashboard' as const },
     { id: 'route' as const, icon: Route, label: 'Route', screen: 'route' as const },
-    { id: 'report' as const, icon: AlertTriangle, label: 'Report', screen: 'issue' as const },
     { id: 'profile' as const, icon: User, label: 'Profile', screen: 'profile' as const },
   ];
 

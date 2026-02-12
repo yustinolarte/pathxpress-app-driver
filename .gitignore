@@ -33,3 +33,5 @@ yarn-error.log*
 
 # Capacitor
 capacitor.config.json.timestamp
+
+.env

@@ -5,7 +5,7 @@ import { RouteMap } from './RouteMap';
 import { useState } from 'react';
 
 interface RouteListProps {
-    onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
+    onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings') => void;
     onSelectDelivery: (id: number) => void;
     routeData?: any;
     authToken: string;
@@ -55,7 +55,8 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
         if (pickup && delivery) {
             // If pickup is not completed, SHOW PICKUP
             // Statuses that mean "Completed" for the purpose of moving next
-            const isPickupDone = ['picked_up', 'PICKED_UP'].includes(pickup.status);
+            const status = pickup.status?.toLowerCase().replace(' ', '_');
+            const isPickupDone = ['picked_up'].includes(status);
 
             if (!isPickupDone) return pickup;
             return delivery; // Pickup done, show delivery
@@ -72,9 +73,9 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
         status: d.status === 'pending' || d.status === 'PENDING' ? 'Pending' :
             d.status === 'picked_up' || d.status === 'PICKED_UP' ? 'Picked Up' :
                 d.status === 'delivered' || d.status === 'DELIVERED' ? 'Delivered' :
-                    d.status === 'attempted' || d.status === 'ATTEMPTED' ? 'Attempted' :
+                    d.status === 'attempted' || d.status === 'ATTEMPTED' || d.status === 'delivery_attempted' ? 'Attempted' :
                         d.status === 'returned' || d.status === 'RETURNED' ? 'Returned' :
-                            d.status === 'failed' || d.status === 'FAILED' ? 'Failed' :
+                            d.status === 'failed' || d.status === 'FAILED' || d.status === 'failed_delivery' ? 'Failed' :
                                 d.status === 'on_hold' || d.status === 'ON_HOLD' ? 'On Hold' : d.status,
         type: d.codAmount || d.codRequired ? 'COD' : 'Prepaid',
         cod: d.codAmount ? `${d.codAmount} AED` : null,
@@ -108,29 +109,35 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
 
     const openGoogleMaps = () => {
         if (!selectedAddress) return;
-        const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedAddress.lat},${selectedAddress.lng}`;
+        const hasCoords = selectedAddress.lat && selectedAddress.lng && selectedAddress.lat !== 0 && selectedAddress.lng !== 0;
+        const url = hasCoords
+            ? `https://www.google.com/maps/dir/?api=1&destination=${selectedAddress.lat},${selectedAddress.lng}`
+            : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedAddress.address)}`;
         window.open(url, '_blank');
         setShowNavigateModal(false);
     };
 
     const openWaze = () => {
         if (!selectedAddress) return;
-        const url = `https://waze.com/ul?ll=${selectedAddress.lat},${selectedAddress.lng}&navigate=yes`;
+        const hasCoords = selectedAddress.lat && selectedAddress.lng && selectedAddress.lat !== 0 && selectedAddress.lng !== 0;
+        const url = hasCoords
+            ? `https://waze.com/ul?ll=${selectedAddress.lat},${selectedAddress.lng}&navigate=yes`
+            : `https://waze.com/ul?q=${encodeURIComponent(selectedAddress.address)}&navigate=yes`;
         window.open(url, '_blank');
         setShowNavigateModal(false);
     };
 
-    // Sort logic - pending first, then on_hold, then attempted, then completed/failed
+    // Sort logic - pending first, then completed/failed, then on_hold/attempted last (re-attemptable)
     const sortedDeliveries = [...filteredDeliveries].sort((a: any, b: any) => {
         const statusOrder: Record<string, number> = {
             'Pending': 1,
-            'On Hold': 2,
+            'Delivered': 2,
+            'Picked Up': 2,
+            'Returned': 2,
+            'Failed': 2,
+            'Cancelled': 2,
+            'On Hold': 3,
             'Attempted': 3,
-            'Delivered': 4,
-            'Picked Up': 4,
-            'Returned': 4,
-            'Failed': 4,
-            'Cancelled': 4
         };
         const orderA = statusOrder[a.status] || 5;
         const orderB = statusOrder[b.status] || 5;
@@ -138,7 +145,7 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
     });
 
     const allCompleted = deliveries.every((d: any) =>
-        ['Delivered', 'Picked Up', 'Returned', 'Cancelled', 'Attempted', 'Failed'].includes(d.status)
+        ['Delivered', 'Picked Up', 'Returned', 'Cancelled', 'Failed'].includes(d.status)
     );
 
     const handleFinishClick = async () => {
@@ -165,8 +172,11 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
         cod: d.cod,
     }));
 
-    const handleNavigateExternal = (lat: number, lng: number) => {
-        const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    const handleNavigateExternal = (lat: number, lng: number, address?: string) => {
+        const hasCoords = lat && lng && lat !== 0 && lng !== 0;
+        const url = hasCoords
+            ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+            : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address || 'Unknown')}`;
         window.open(url, '_blank');
     };
 
@@ -252,7 +262,7 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
                     return (
                         <div
                             key={delivery.id}
-                            onClick={() => !isCompleted && !isDisabled && !isOnHold && onSelectDelivery(delivery.id)}
+                            onClick={() => !isCompleted && !isDisabled && onSelectDelivery(delivery.id)}
                             className={`relative rounded-[2rem] p-6 transition-all border shadow-sm hover:shadow-md ${completedStyle} ${disabledStyle} ${onHoldStyle || failedStyle || attemptedStyle || 'bg-white border-gray-100'}`}
                         >
                             {/* Disabled Overlay */}

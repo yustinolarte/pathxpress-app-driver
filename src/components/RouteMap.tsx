@@ -72,7 +72,7 @@ export function RouteMap({ stops, onStopClick, onBack, onNavigateExternal }: Rou
 
         // Add tile layer (OpenStreetMap)
         // Mapbox Streets v12
-        const MAPBOX_TOKEN = 'pk.eyJ1IjoicGF0aHhwcmVzcyIsImEiOiJjbWs1eGtudnAwcjBrM2RxczF3ejJoNGJsIn0.BSdbosJMVCMBhzf7UFsgRw';
+        const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
         L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`, {
             tileSize: 512,
