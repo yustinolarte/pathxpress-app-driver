@@ -28,7 +28,42 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
     // Map deliveries/stops from route data, including stopType for pickup detection
-    const deliveries = (routeData?.stops || routeData?.deliveries)?.map((d: any) => ({
+    // Map deliveries/stops from route data
+    // NEW LOGIC: Group by orderId to implement "Unified Package View"
+    const stopsRaw = (routeData?.stops || routeData?.deliveries || []);
+
+    // Group by Order ID
+    const ordersMap: Record<string, any[]> = {};
+    stopsRaw.forEach((s: any) => {
+        let key = s.orderId ? s.orderId.toString() : `-${s.id}`;
+        if (!ordersMap[key]) {
+            ordersMap[key] = [];
+        }
+        ordersMap[key].push(s);
+    });
+
+    // Flatten back to list, choosing the "Active" stop for each order
+    const deliveries = Object.values(ordersMap).map((orderStops: any) => {
+        const stops = orderStops as any[];
+        // If only one stop, return it
+        if (stops.length === 1) return stops[0];
+
+        // If multiple stops (Pickup + Delivery), find active one
+        const pickup = stops.find((s: any) => s.stopType === 'pickup' || s.type === 'pickup');
+        const delivery = stops.find((s: any) => s.stopType === 'delivery' || s.type === 'delivery');
+
+        if (pickup && delivery) {
+            // If pickup is not completed, SHOW PICKUP
+            // Statuses that mean "Completed" for the purpose of moving next
+            const isPickupDone = ['picked_up', 'PICKED_UP'].includes(pickup.status);
+
+            if (!isPickupDone) return pickup;
+            return delivery; // Pickup done, show delivery
+        }
+
+        // Fallback: return first
+        return orderStops[0];
+    }).map((d: any) => ({
         id: d.id,
         orderId: d.orderId, // Track orderId for pickup/delivery linking
         name: d.contactName || d.customerName || 'Unknown',
@@ -36,7 +71,11 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
         distance: '0.0 km',
         status: d.status === 'pending' || d.status === 'PENDING' ? 'Pending' :
             d.status === 'picked_up' || d.status === 'PICKED_UP' ? 'Picked Up' :
-                d.status === 'delivered' || d.status === 'DELIVERED' ? 'Delivered' : d.status,
+                d.status === 'delivered' || d.status === 'DELIVERED' ? 'Delivered' :
+                    d.status === 'attempted' || d.status === 'ATTEMPTED' ? 'Attempted' :
+                        d.status === 'returned' || d.status === 'RETURNED' ? 'Returned' :
+                            d.status === 'failed' || d.status === 'FAILED' ? 'Failed' :
+                                d.status === 'on_hold' || d.status === 'ON_HOLD' ? 'On Hold' : d.status,
         type: d.codAmount || d.codRequired ? 'COD' : 'Prepaid',
         cod: d.codAmount ? `${d.codAmount} AED` : null,
         lat: d.latitude || d.coordinates?.lat || 0,
@@ -81,23 +120,25 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
         setShowNavigateModal(false);
     };
 
-    // Sort logic - pending first, then attempted, then completed
+    // Sort logic - pending first, then on_hold, then attempted, then completed/failed
     const sortedDeliveries = [...filteredDeliveries].sort((a: any, b: any) => {
         const statusOrder: Record<string, number> = {
             'Pending': 1,
-            'Attempted': 2,
-            'Delivered': 3,
-            'Picked Up': 3,
-            'Returned': 3,
-            'Cancelled': 3
+            'On Hold': 2,
+            'Attempted': 3,
+            'Delivered': 4,
+            'Picked Up': 4,
+            'Returned': 4,
+            'Failed': 4,
+            'Cancelled': 4
         };
-        const orderA = statusOrder[a.status] || 4;
-        const orderB = statusOrder[b.status] || 4;
+        const orderA = statusOrder[a.status] || 5;
+        const orderB = statusOrder[b.status] || 5;
         return orderA - orderB;
     });
 
     const allCompleted = deliveries.every((d: any) =>
-        ['Delivered', 'Picked Up', 'Returned', 'Cancelled', 'Attempted'].includes(d.status)
+        ['Delivered', 'Picked Up', 'Returned', 'Cancelled', 'Attempted', 'Failed'].includes(d.status)
     );
 
     const handleFinishClick = async () => {
@@ -180,7 +221,10 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
             {/* Delivery List */}
             <div className="px-6 space-y-4 pt-2">
                 {sortedDeliveries.map((delivery: any) => {
-                    const isCompleted = ['Delivered', 'Returned', 'Cancelled', 'Picked Up'].includes(delivery.status);
+                    const isCompleted = ['Delivered', 'Returned', 'Cancelled', 'Picked Up', 'Failed'].includes(delivery.status);
+                    const isOnHold = delivery.status === 'On Hold';
+                    const isFailed = delivery.status === 'Failed';
+                    const isAttempted = delivery.status === 'Attempted';
                     const isDisabled = delivery.isDisabled && !isCompleted;
 
                     // Style logic based on card type
@@ -201,12 +245,15 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
                     // Disabled styling for delivery stops awaiting pickup
                     const disabledStyle = isDisabled ? 'opacity-50 pointer-events-none' : '';
                     const completedStyle = isCompleted ? 'opacity-60 grayscale' : '';
+                    const onHoldStyle = isOnHold ? 'border-amber-300 bg-amber-50' : '';
+                    const failedStyle = isFailed ? 'border-red-300 bg-red-50' : '';
+                    const attemptedStyle = isAttempted ? 'border-yellow-300 bg-yellow-50' : '';
 
                     return (
                         <div
                             key={delivery.id}
-                            onClick={() => !isCompleted && !isDisabled && onSelectDelivery(delivery.id)}
-                            className={`relative bg-white rounded-[2rem] p-6 transition-all border border-gray-100 shadow-sm hover:shadow-md ${completedStyle} ${disabledStyle}`}
+                            onClick={() => !isCompleted && !isDisabled && !isOnHold && onSelectDelivery(delivery.id)}
+                            className={`relative rounded-[2rem] p-6 transition-all border shadow-sm hover:shadow-md ${completedStyle} ${disabledStyle} ${onHoldStyle || failedStyle || attemptedStyle || 'bg-white border-gray-100'}`}
                         >
                             {/* Disabled Overlay */}
                             {isDisabled && (
@@ -246,8 +293,16 @@ export function RouteList({ onNavigate, onSelectDelivery, routeData, authToken, 
                             {/* Actions / Status */}
                             <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-50">
                                 <div className="flex items-center gap-2">
-                                    <div className={`w-2 h-2 rounded-full ${delivery.status === 'Pending' ? 'bg-yellow-400' : 'bg-green-500'}`}></div>
-                                    <span className="text-sm font-semibold text-gray-700">{delivery.status}</span>
+                                    <div className={`w-2 h-2 rounded-full ${delivery.status === 'Pending' ? 'bg-yellow-400' :
+                                        delivery.status === 'On Hold' ? 'bg-amber-500' :
+                                            delivery.status === 'Attempted' ? 'bg-orange-400' :
+                                                delivery.status === 'Failed' ? 'bg-red-500' :
+                                                    'bg-green-500'
+                                        }`}></div>
+                                    <span className={`text-sm font-semibold ${delivery.status === 'Failed' ? 'text-red-600' :
+                                        delivery.status === 'On Hold' ? 'text-amber-600' :
+                                            'text-gray-700'
+                                        }`}>{delivery.status}</span>
                                 </div>
 
                                 {!isCompleted && (

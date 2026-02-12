@@ -301,21 +301,35 @@ export default function App() {
   const handleDeliveryUpdate = (deliveryId: number, status: string) => {
     if (!routeData) return;
 
-    const updatedStops = (routeData.stops || routeData.deliveries).map((d: any) => {
+    let updatedStops = (routeData.stops || routeData.deliveries).map((d: any) => {
+      // Update the modified stop
       if (d.id === deliveryId) {
         let newStatus = 'pending';
-        // Normalize status to what RouteList expects
         if (status === 'DELIVERED') newStatus = 'Delivered';
         if (status === 'ATTEMPTED') newStatus = 'Attempted';
         if (status === 'RETURNED') newStatus = 'Returned';
         if (status === 'PICKED_UP') newStatus = 'Picked Up';
-
+        if (status === 'FAILED') newStatus = 'Failed';
+        if (status === 'ON_HOLD') newStatus = 'On Hold';
         return { ...d, status: newStatus };
       }
       return d;
     });
 
-    // Update both stops and deliveries to keep them in sync, as RouteList checks stops first
+    // Handling dependent stops (Unlock delivery if pickup is completed)
+    const modifiedStop = updatedStops.find((d: any) => d.id === deliveryId);
+    if (modifiedStop && modifiedStop.stopType === 'pickup' && modifiedStop.status === 'Picked Up') {
+      const orderId = modifiedStop.orderId;
+      // Find corresponding delivery stop and unlock it
+      updatedStops = updatedStops.map((d: any) => {
+        if (d.orderId === orderId && d.stopType === 'delivery') {
+          return { ...d, isDisabled: false };
+        }
+        return d;
+      });
+    }
+
+    // Update both stops and deliveries to keep them in sync
     const newRouteData = {
       ...routeData,
       stops: updatedStops,

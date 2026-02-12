@@ -41,7 +41,7 @@ export function Dashboard({ onNavigate, routeData, onStartRoute, hasActiveRoute 
     const deliveryCount = stops.filter((s: any) => s.stopType === 'delivery' || !s.stopType).length;
 
     const completedCount = stops.filter((d: any) =>
-        ['DELIVERED', 'PICKED_UP', 'RETURNED', 'COMPLETED', 'completed', 'Delivered', 'Returned', 'Picked Up'].includes(d.status)
+        ['DELIVERED', 'PICKED_UP', 'RETURNED', 'COMPLETED', 'completed', 'Delivered', 'Returned', 'Picked Up', 'FAILED', 'Failed', 'ATTEMPTED', 'Attempted'].includes(d.status)
     ).length || 0;
 
     const progressPercent = stops.length > 0 ? (completedCount / stops.length) * 100 : 0;

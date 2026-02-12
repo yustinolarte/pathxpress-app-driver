@@ -101,7 +101,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
     }
   };
 
-  const updateStatus = async (status: string, customPhoto?: string) => {
+  const updateStatus = async (status: string, customPhoto?: string, notes?: string) => {
     if (!deliveryId) return;
 
     try {
@@ -111,7 +111,7 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
         status,
         authToken,
         customPhoto || photo || undefined,
-        ''
+        notes || ''
       );
 
       setActionTaken(true); // Immediate local update
@@ -130,6 +130,8 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
       }, 500);
     }
   };
+
+
 
   // Handle barcode scan for pickups
   const handleScanPickup = async () => {
@@ -415,12 +417,24 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
 
             {/* Only show these actions if NOT completed */}
             {!isCompleted && (
-              <div className="flex gap-2">
-                <button onClick={() => updateStatus('ATTEMPTED')} className="flex-1 py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50">
-                  Mark Attempted
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => updateStatus('ATTEMPTED')} className="py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50 border border-gray-100">
+                  Attempted
                 </button>
-                <button onClick={() => updateStatus('RETURNED')} className="flex-1 py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50">
-                  Mark Returned
+                <button onClick={() => updateStatus('RETURNED')} className="py-3 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-50 border border-gray-100">
+                  Returned
+                </button>
+                <button onClick={() => {
+                  const reason = window.prompt("Reason for failure?");
+                  if (reason !== null) updateStatus('FAILED', undefined, reason);
+                }} className="py-3 text-sm font-semibold text-red-500 hover:text-red-700 rounded-xl hover:bg-red-50 border border-red-100">
+                  Failed
+                </button>
+                <button onClick={() => {
+                  const reason = window.prompt("Reason/Notes for hold?");
+                  if (reason !== null) updateStatus('ON_HOLD', undefined, reason);
+                }} className="py-3 text-sm font-semibold text-orange-500 hover:text-orange-700 rounded-xl hover:bg-orange-50 border border-orange-100">
+                  On Hold
                 </button>
               </div>
             )}
