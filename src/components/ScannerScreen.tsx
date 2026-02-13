@@ -147,7 +147,7 @@ export function ScannerScreen({ onScanComplete, authToken }: ScannerScreenProps)
   };
 
   return (
-    <div className="scanner-ui min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 relative overflow-hidden">
+    <div className="scanner-ui min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 pt-[calc(2rem+env(safe-area-inset-top))] relative overflow-hidden">
       {/* Decorative accents */}
       <div className="absolute top-20 right-10 w-40 h-40 bg-red-600 opacity-5 rounded-full blur-3xl"></div>
       <div className="absolute bottom-40 left-10 w-60 h-60 bg-red-600 opacity-5 rounded-full blur-3xl"></div>

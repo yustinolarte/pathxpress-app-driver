@@ -53,9 +53,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         <div className="space-y-5">
           {/* Error Message */}
           {error && (
-            <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-xl border border-red-100">
-              <AlertCircle className="w-5 h-5" />
-              <span className="text-sm">{error}</span>
+            <div className="flex items-start gap-3 text-red-600 bg-red-50 p-4 rounded-xl border border-red-100 animate-in slide-in-from-top-2 fade-in duration-300">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="text-sm font-medium leading-relaxed">
+                {error.includes('{') ? 'Login failed. Please check your connection or credentials.' : error}
+              </div>
             </div>
           )}
 
@@ -66,7 +68,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Username (driver)"
+              placeholder="Username"
               className="w-full bg-white border border-gray-200 rounded-2xl px-12 py-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-600 transition-all shadow-sm"
             />
           </div>
@@ -78,7 +80,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password (12345)"
+              placeholder="Password"
               className="w-full bg-white border border-gray-200 rounded-2xl px-12 py-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-600 transition-all shadow-sm"
             />
           </div>
