@@ -45,22 +45,6 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
   const [showCODConfirm, setShowCODConfirm] = useState(false);
   const [collectedAmount, setCollectedAmount] = useState<string>('');
 
-  // Set initial collected amount when delivery loads
-  useEffect(() => {
-    if (delivery.cod) {
-      // Extract number from "1250 AED" or similar
-      const match = delivery.cod.match(/[\d.]+/);
-      if (match) setCollectedAmount(match[0]);
-    }
-  }, [delivery.cod]);
-
-  // Start stop timer silently in background
-  useEffect(() => {
-    if (deliveryId) {
-      timeTracker.startStop(deliveryId);
-    }
-  }, [deliveryId]);
-
   // Find stop from routeData (check stops first, then deliveries for backward compat)
   const stops = routeData?.stops || routeData?.deliveries || [];
   const foundStop = stops.find((d: any) => d.id === deliveryId);
@@ -98,6 +82,22 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
     lng: 55.1390,
     type: 'Prepaid'
   };
+
+  // Set initial collected amount when delivery loads
+  useEffect(() => {
+    if (delivery.cod) {
+      // Extract number from "1250 AED" or similar
+      const match = delivery.cod.match(/[\d.]+/);
+      if (match) setCollectedAmount(match[0]);
+    }
+  }, [delivery.cod]);
+
+  // Start stop timer silently in background
+  useEffect(() => {
+    if (deliveryId) {
+      timeTracker.startStop(deliveryId);
+    }
+  }, [deliveryId]);
 
   const handlePhotoClick = () => {
     fileInputRef.current?.click();
