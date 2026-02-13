@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { Clock, Play, Square, Coffee, UtensilsCrossed, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { timeTracker, TimeTrackerState } from '../services/timeTracker';
 
-export function ShiftTracker() {
+interface ShiftTrackerProps {
+    onClockOutAttempt?: () => void;
+}
+
+export function ShiftTracker({ onClockOutAttempt }: ShiftTrackerProps) {
     const [state, setState] = useState<TimeTrackerState>(timeTracker.getState());
     const [currentTime, setCurrentTime] = useState(0);
     const [breakTime, setBreakTime] = useState(0);
@@ -33,6 +37,12 @@ export function ShiftTracker() {
     };
 
     const handleClockOut = async () => {
+        // If callback provided, use it (redirect to wallet) instead of clocking out immediately
+        if (onClockOutAttempt) {
+            onClockOutAttempt();
+            return;
+        }
+
         if (confirm('Are you sure you want to clock out?')) {
             setIsClockingOut(true);
             try {

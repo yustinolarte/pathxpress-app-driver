@@ -192,7 +192,7 @@ export const api = {
     },
 
     // Update stop status (works for both pickups and deliveries)
-    updateStopStatus: async (stopId: number, status: string, token: string, photo?: string, notes?: string) => {
+    updateStopStatus: async (stopId: number, status: string, token: string, photo?: string, notes?: string, collectedAmount?: number) => {
         const response = await fetch(`${API_URL}/stops/${stopId}/status`, {
             method: 'PUT',
             headers: {
@@ -202,13 +202,30 @@ export const api = {
             body: JSON.stringify({
                 status,
                 photoBase64: photo,
-                notes
+                notes,
+                collectedAmount
             })
         });
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             throw new Error(error.error || 'Failed to update stop status');
+        }
+
+        return response.json();
+    },
+
+    // Wallet / Reconciliation
+    getWalletSummary: async (token: string) => {
+        const response = await fetch(`${API_URL}/wallet/summary`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch wallet summary');
         }
 
         return response.json();

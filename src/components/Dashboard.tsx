@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { timeTracker, TimeTrackerState } from '../services/timeTracker';
 
 interface DashboardProps {
-    onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings') => void;
+    onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings' | 'wallet') => void;
     routeData?: any;
     onStartRoute?: () => void; // Called to start route scanning
     hasActiveRoute?: boolean; // True if route is scanned and inspection complete
@@ -134,7 +134,7 @@ export function Dashboard({ onNavigate, routeData, onStartRoute, hasActiveRoute 
                 </div>
 
                 {/* Shift Tracker Card */}
-                <ShiftTracker />
+                <ShiftTracker onClockOutAttempt={() => onNavigate('wallet')} />
 
                 {/* Route Info Section */}
                 <div className="space-y-4 mt-6">
@@ -162,7 +162,10 @@ export function Dashboard({ onNavigate, routeData, onStartRoute, hasActiveRoute 
                     </div>
 
                     {/* COD Info (Clean white card) */}
-                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div
+                        onClick={() => onNavigate('wallet')}
+                        className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer active:scale-95 transition-transform"
+                    >
                         <div className="flex items-center gap-4">
                             <div className="bg-gray-50 p-3 rounded-2xl">
                                 <Wallet className="w-6 h-6 text-gray-800" />

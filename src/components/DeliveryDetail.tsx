@@ -41,6 +41,19 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
   const sliderRef = useRef<HTMLDivElement>(null);
   const sliderBtnRef = useRef<HTMLDivElement>(null);
 
+  // COD Confirmation State
+  const [showCODConfirm, setShowCODConfirm] = useState(false);
+  const [collectedAmount, setCollectedAmount] = useState<string>('');
+
+  // Set initial collected amount when delivery loads
+  useEffect(() => {
+    if (delivery.cod) {
+      // Extract number from "1250 AED" or similar
+      const match = delivery.cod.match(/[\d.]+/);
+      if (match) setCollectedAmount(match[0]);
+    }
+  }, [delivery.cod]);
+
   // Start stop timer silently in background
   useEffect(() => {
     if (deliveryId) {
@@ -110,8 +123,10 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
         deliveryId,
         status,
         authToken,
+        authToken,
         customPhoto || photo || undefined,
-        notes || ''
+        notes || '',
+        parseFloat(collectedAmount) || undefined // Pass collected amount
       );
 
       setActionTaken(true); // Immediate local update
@@ -229,9 +244,14 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
         handleScanPickup();
         setDragX(0);
       } else {
-        // For deliveries, show POD capture
-        setShowPODCapture(true);
-        setDragX(0);
+        // For deliveries
+        if (delivery.type === 'COD') {
+          setShowCODConfirm(true);
+          setDragX(0);
+        } else {
+          setShowPODCapture(true);
+          setDragX(0);
+        }
       }
     } else {
       setDragX(0);
@@ -467,6 +487,59 @@ export function DeliveryDetail({ onNavigate, deliveryId, routeData, authToken, o
           customerPhone={delivery.phone}
           onClose={() => setShowQuickMessage(false)}
         />
+      )}
+
+      {/* COD Confirmation Modal */}
+      {showCODConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-[2000] flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 animate-in slide-in-from-bottom-10 fade-in duration-300">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-green-600">$</span>
+              </div>
+              <h3 className="text-2xl font-bold font-heading text-gray-900">Confirm Collection</h3>
+              <p className="text-gray-500 mt-2">Please confirm the cash amount collected from the customer.</p>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl p-4 mb-6 border border-gray-100">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Collected Amount (AED)</label>
+              <input
+                type="number"
+                value={collectedAmount}
+                onChange={(e) => setCollectedAmount(e.target.value)}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-2xl font-bold text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                placeholder="0.00"
+                autoFocus
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowCODConfirm(false)}
+                className="py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowCODConfirm(false);
+                  // Store the confirmed amount temporarily or pass it directly?
+                  // We'll pass it to updateStatus via POD capture?
+                  // Actually, POD capture triggers handlePODComplete.
+                  // We should save it to a ref or state that handlePODComplete can access,
+                  // OR pass it to PODCapture if it supported it.
+                  // But PODCapture is a separate component.
+                  // Let's modify handlePODComplete to include this state.
+                  setShowPODCapture(true);
+                }}
+                disabled={!collectedAmount || parseFloat(collectedAmount) <= 0}
+                className="py-4 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-black/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

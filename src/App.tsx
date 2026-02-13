@@ -5,6 +5,7 @@ import { VehicleInspection } from './components/VehicleInspection';
 import { Dashboard } from './components/Dashboard';
 import { RouteList } from './components/RouteList';
 import { DeliveryDetail } from './components/DeliveryDetail';
+import { DriverWallet } from './components/DriverWallet';
 
 import { Profile } from './components/Profile';
 import { Settings } from './components/Settings';
@@ -119,7 +120,7 @@ const MOCK_ROUTE = {
 
 export default function App() {
   // Start at login screen - REAL FLOW ENABLED
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'scanner' | 'inspection' | 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings'>('login');
+  const [currentScreen, setCurrentScreen] = useState<'login' | 'scanner' | 'inspection' | 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings' | 'wallet'>('login');
   const [selectedDelivery, setSelectedDelivery] = useState<number | null>(null);
 
   // Default to false - require real login and scanning
@@ -358,6 +359,7 @@ export default function App() {
 
       {currentScreen === 'profile' && <Profile onNavigate={handleNavigate} authToken={authToken!} hasRoute={routeScanned} />}
       {currentScreen === 'settings' && <Settings onNavigate={handleNavigate} onLogout={handleLogout} />}
+      {currentScreen === 'wallet' && <DriverWallet onNavigate={handleNavigate} authToken={authToken!} onLogout={handleLogout} />}
     </div>
   );
 }
