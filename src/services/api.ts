@@ -1,15 +1,14 @@
 // API Configuration
 // ⚠️ IMPORTANT: Select the correct URL for your testing environment:
 
-// 1. For Android Emulator (with adb reverse):
-// export const API_URL = 'http://10.0.2.2:3000/api';
-
-// 2. For Physical Device (Your Local IP - find with ipconfig):
-// const API_URL = 'http://192.168.70.149:3000/api';
-
 // 3. For Production (PathXpress Portal):
-// Ensure .env VITE_API_URL is set to 'https://pathxpress.net/api'
-export const API_URL = import.meta.env.VITE_API_URL || 'https://pathxpress.net/api';
+// Ensure .env VITE_API_URL is set to 'https://pathxpress.net/api/driver'
+export const API_URL = import.meta.env.VITE_API_URL || 'https://pathxpress.net/api/driver';
+
+// Helper to get the base API URL (removing /driver if present) for non-driver routes
+const getBaseApiUrl = () => {
+    return API_URL.replace(/\/driver$/, '');
+};
 
 import { networkService } from './network';
 import { offlineQueue } from './offlineQueue';
@@ -21,6 +20,7 @@ export const api = {
             throw new Error('No internet connection. Cannot login.');
         }
 
+        // Login uses .../api/driver/auth/login
         const response = await fetch(`${API_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -38,12 +38,27 @@ export const api = {
         if (!networkService.isOnline()) {
             throw new Error('No internet connection');
         }
-        // Endpoint: /api/driver/profile
-        const response = await fetch(`${API_URL}/driver/profile`, {
+        // Endpoint: .../api/driver/profile
+        const response = await fetch(`${API_URL}/profile`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Failed to fetch profile');
         return response.json();
+    },
+
+    // Routes - Helper for Wallet
+    getDriverRoutes: async (token: string) => {
+        if (!networkService.isOnline()) return [];
+        try {
+            const baseUrl = getBaseApiUrl();
+            const response = await fetch(`${baseUrl}/routes`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return [];
+            return response.json();
+        } catch {
+            return [];
+        }
     },
 
     // Routes
@@ -51,7 +66,9 @@ export const api = {
         if (!networkService.isOnline()) {
             throw new Error('No internet connection');
         }
-        const response = await fetch(`${API_URL}/routes/${routeId}`, {
+        // Routes are under .../api/routes
+        const baseUrl = getBaseApiUrl();
+        const response = await fetch(`${baseUrl}/routes/${routeId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Failed to fetch route');
@@ -64,11 +81,13 @@ export const api = {
             throw new Error('No internet connection');
         }
 
-        // Endpoint: POST /api/routes/:id/claim
-        // Backend expects POST, not PUT.
-        console.log(`Claiming route: ${API_URL}/routes/${routeId}/claim`);
+        // Backend expects POST /api/routes/:id/claim
+        const baseUrl = getBaseApiUrl();
+        const url = `${baseUrl}/routes/${routeId}/claim`;
 
-        const response = await fetch(`${API_URL}/routes/${routeId}/claim`, {
+        console.log(`Claiming route at: ${url}`);
+
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -79,14 +98,12 @@ export const api = {
         const text = await response.text();
 
         if (!response.ok) {
-            let errorMessage = 'Failed to claim route';
+            let errorMessage = `Request failed: ${response.status}`;
             try {
                 const err = JSON.parse(text);
                 errorMessage = err.message || err.error || errorMessage;
             } catch {
-                // If parse fails, it's likely HTML (404/500)
-                console.error('API Error (Raw):', text);
-                errorMessage = `Server Error (${response.status}): Check API URL or Backend Logs.`;
+                errorMessage = `Server Error (${response.status}): ${text.substring(0, 100)}`;
             }
             throw new Error(errorMessage);
         }
@@ -94,7 +111,7 @@ export const api = {
         try {
             return JSON.parse(text);
         } catch {
-            return { success: true }; // Fallback if empty success response
+            return { success: true };
         }
     },
 
@@ -105,7 +122,8 @@ export const api = {
         }
 
         try {
-            const url = `${API_URL}/routes/${routeId}/status`;
+            const baseUrl = getBaseApiUrl();
+            const url = `${baseUrl}/routes/${routeId}/status`;
             const response = await fetch(url, {
                 method: 'PUT',
                 headers: {
@@ -137,7 +155,9 @@ export const api = {
         }
 
         try {
-            const response = await fetch(`${API_URL}/deliveries/${deliveryId}/status`, {
+            // Deliveries likely under .../api/deliveries
+            const baseUrl = getBaseApiUrl();
+            const response = await fetch(`${baseUrl}/deliveries/${deliveryId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -162,7 +182,8 @@ export const api = {
         }
 
         try {
-            const response = await fetch(`${API_URL}/reports`, {
+            const baseUrl = getBaseApiUrl();
+            const response = await fetch(`${baseUrl}/reports`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -190,7 +211,8 @@ export const api = {
         }
 
         try {
-            const response = await fetch(`${API_URL}/stops/${stopId}/status`, {
+            const baseUrl = getBaseApiUrl();
+            const response = await fetch(`${baseUrl}/stops/${stopId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -216,17 +238,77 @@ export const api = {
         }
     },
 
-    // Wallet Summary
+    // Wallet Summary - Calculated locally to avoid 404
     getWalletSummary: async (token: string) => {
-        if (!networkService.isOnline()) return { total_cod: 0, pending_deposit: 0 };
+        const emptySummary = {
+            totalExpected: 0,
+            totalCollected: 0,
+            discrepancy: 0,
+            orders: []
+        };
+
+        if (!networkService.isOnline()) return emptySummary;
+
         try {
-            const response = await fetch(`${API_URL}/wallet`, {
+            // First try fetching routes to calculate summary
+            // (Since the wallet endpoint doesn't exist on backend)
+            const baseUrl = getBaseApiUrl();
+            const response = await fetch(`${baseUrl}/routes`, {
                 headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) return { total_cod: 0, pending_deposit: 0 };
-            return response.json();
-        } catch {
-            return { total_cod: 0, pending_deposit: 0 };
+            }).catch(() => null);
+
+            if (response && response.ok) {
+                const routes = await response.json();
+
+                let totalExpected = 0;
+                let totalCollected = 0;
+                let orders: any[] = [];
+
+                if (Array.isArray(routes)) {
+                    routes.forEach((r: any) => {
+                        // Relaxed Logic: Include ALL routes returned by getDriverRoutes.
+                        // We do NOT filter by date ("today") locally, because the driver
+                        // might be working on a route created recently but not "today".
+                        // Logic: IF it's in the list, count it.
+
+                        if (r.deliveries) {
+                            r.deliveries.forEach((d: any) => {
+                                // Check if it's COD
+                                const amount = Number(d.codAmount || 0);
+                                if (amount > 0) {
+                                    totalExpected += amount;
+                                    const isDelivered = d.status === 'DELIVERED';
+                                    const collected = isDelivered ? amount : 0;
+                                    totalCollected += collected;
+
+                                    orders.push({
+                                        id: d.id,
+                                        waybillNumber: d.trackingNumber || `ORD-${d.id}`,
+                                        customerName: d.customerName || 'Unknown',
+                                        expectedAmount: amount,
+                                        collectedAmount: collected,
+                                        status: d.status,
+                                        isDelivered: isDelivered
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+
+                return {
+                    totalExpected,
+                    totalCollected,
+                    discrepancy: 0,
+                    orders
+                };
+            }
+            // Fallback
+            return emptySummary;
+
+        } catch (e) {
+            console.warn('Wallet calc error:', e);
+            return emptySummary;
         }
     }
 };
