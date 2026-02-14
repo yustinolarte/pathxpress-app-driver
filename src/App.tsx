@@ -377,7 +377,7 @@ export default function App() {
         {currentScreen === 'issue' && <ReportIssue onNavigate={handleNavigate} authToken={authToken!} hasRoute={routeScanned} />}
         {currentScreen === 'profile' && <Profile onNavigate={handleNavigate} authToken={authToken!} hasRoute={routeScanned} />}
         {currentScreen === 'settings' && <Settings onNavigate={handleNavigate} onLogout={handleLogout} theme={theme} onToggleTheme={toggleTheme} />}
-        {currentScreen === 'wallet' && <DriverWallet onNavigate={handleNavigate} authToken={authToken!} onLogout={handleLogout} />}
+        {currentScreen === 'wallet' && <DriverWallet onNavigate={handleNavigate} authToken={authToken!} onLogout={handleLogout} routeData={routeData} />}
         {currentScreen === 'load_scan' && <LoadScan routeData={routeData} onComplete={() => setCurrentScreen('dashboard')} onCancel={() => setCurrentScreen('dashboard')} />}
       </div>
     </div>

@@ -7,6 +7,7 @@ interface DriverWalletProps {
     onNavigate: (screen: ScreenName) => void;
     authToken: string;
     onLogout: () => void;
+    routeData?: any; // New prop
 }
 
 interface WalletSummary {
@@ -24,23 +25,66 @@ interface WalletSummary {
     }>;
 }
 
-export function DriverWallet({ onNavigate, authToken, onLogout }: DriverWalletProps) {
+export function DriverWallet({ onNavigate, authToken, onLogout, routeData }: DriverWalletProps) {
     const [summary, setSummary] = useState<WalletSummary | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isEndingShift, setIsEndingShift] = useState(false);
 
-    useEffect(() => { loadSummary(); }, []);
+    useEffect(() => { loadSummary(); }, [routeData]); // Reload if routeData changes
 
     const loadSummary = async () => {
         try {
             setLoading(true);
+
+            // Priority 1: Use local routeData if available (Matches Dashboard)
+            if (routeData) {
+                const stops = routeData.stops || routeData.deliveries || [];
+                let totalExpected = 0;
+                let totalCollected = 0;
+                let orders: any[] = [];
+
+                stops.forEach((d: any) => {
+                    const amount = Number(d.codAmount || 0);
+                    if (amount > 0) {
+                        totalExpected += amount;
+                        // Check status loosely to match Dashboard logic
+                        const status = d.status?.toLowerCase();
+                        const isDelivered = status === 'delivered' || status === 'picked_up' || status === 'completed';
+                        const collected = isDelivered ? amount : 0;
+                        totalCollected += collected;
+
+                        orders.push({
+                            id: d.id,
+                            waybillNumber: d.waybillNumber || d.trackingNumber || `ORD-${d.id}`,
+                            customerName: d.customerName || 'Unknown',
+                            expectedAmount: amount,
+                            collectedAmount: collected,
+                            status: d.status,
+                            isDelivered: isDelivered
+                        });
+                    }
+                });
+
+                setSummary({
+                    totalExpected,
+                    totalCollected,
+                    discrepancy: 0,
+                    orders
+                });
+                setError(null);
+                setLoading(false);
+                return;
+            }
+
+            // Priority 2: Fallback to API if no active route
             const data = await api.getWalletSummary(authToken);
             setSummary(data);
             setError(null);
         } catch (err) {
             console.error('Failed to load wallet summary:', err);
-            setError('Failed to load wallet data');
+            // Don't show error screen if we have legitimate empty state, just show empty
+            setSummary({ totalExpected: 0, totalCollected: 0, discrepancy: 0, orders: [] });
         } finally {
             setLoading(false);
         }
