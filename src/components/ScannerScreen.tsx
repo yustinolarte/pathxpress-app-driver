@@ -33,9 +33,29 @@ export function ScannerScreen({ onScanComplete, authToken }: ScannerScreenProps)
       // Call real backend API - CLAIM the route to assign it to this driver
       const data = await api.claimRoute(routeId, authToken);
 
-      // Validate the data structure
-      if (!data.id || !data.deliveries) {
-        throw new Error("Invalid route data from server");
+      // Validate the data structure - Relaxed check + Auto-fetch if missing details
+      if (!data.id) {
+        console.error('Invalid route data:', data);
+        throw new Error("Invalid route data from server (No ID)");
+      }
+
+      // If deliveries are missing (e.g. backend didn't include them in the claim response), fetch them now
+      if (!data.deliveries) {
+        console.log('Claim successful but missing deliveries. Fetching full route details...');
+        try {
+          const fullRoute = await api.getRoute(routeId, authToken);
+          if (fullRoute && fullRoute.id) {
+            // Use the full route data instead
+            data.deliveries = fullRoute.deliveries || [];
+            Object.assign(data, fullRoute);
+          }
+        } catch (fetchErr) {
+          console.warn('Failed to fetch full route details after claim:', fetchErr);
+          // Continue with what we have, or throw? 
+          // If we don't have deliveries, the UI might crash later. 
+          // Let's assume empty array if still missing.
+          data.deliveries = [];
+        }
       }
 
       // Check if route is already completed

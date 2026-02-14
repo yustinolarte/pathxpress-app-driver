@@ -2,17 +2,14 @@
 // ⚠️ IMPORTANT: Select the correct URL for your testing environment:
 
 // 1. For Android Emulator (with adb reverse):
-// export const API_URL = 'http://10.0.2.2:3000/api/driver';
+// export const API_URL = 'http://10.0.2.2:3000/api';
 
 // 2. For Physical Device (Your Local IP - find with ipconfig):
-// const API_URL = 'http://192.168.70.149:3000/api/driver';
+// const API_URL = 'http://192.168.70.149:3000/api';
 
 // 3. For Production (PathXpress Portal):
-export const API_URL = import.meta.env.VITE_API_URL || 'https://pathxpress.net/api/driver';
-
-// 4. For Local Development:
-// const API_URL = 'http://localhost:3000/api/driver';
-
+// Ensure .env VITE_API_URL is set to 'https://pathxpress.net/api'
+export const API_URL = import.meta.env.VITE_API_URL || 'https://pathxpress.net/api';
 
 import { networkService } from './network';
 import { offlineQueue } from './offlineQueue';
@@ -41,7 +38,8 @@ export const api = {
         if (!networkService.isOnline()) {
             throw new Error('No internet connection');
         }
-        const response = await fetch(`${API_URL}/profile`, {
+        // Endpoint: /api/driver/profile
+        const response = await fetch(`${API_URL}/driver/profile`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Failed to fetch profile');
@@ -49,34 +47,55 @@ export const api = {
     },
 
     // Routes
+    getRoute: async (routeId: string, token: string) => {
+        if (!networkService.isOnline()) {
+            throw new Error('No internet connection');
+        }
+        const response = await fetch(`${API_URL}/routes/${routeId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch route');
+        return response.json();
+    },
+
+    // Claim Route (Scanning QR)
     claimRoute: async (routeId: string, token: string) => {
         if (!networkService.isOnline()) {
             throw new Error('No internet connection');
         }
-        // Assuming the endpoint is either straight GET (if implicit claim) or PUT claim
-        // Based on logic, we usually fetch route details. 
-        // If it's "claim", it might be a specific action. 
-        // For MVP we often just GET the route and backend enforces assignment or we PUT claim.
-        // Let's assume GET /routes/:id first as ScannerScreen usually "fetches" data. 
-        // ScannerScreen says: "Call real backend API - CLAIM the route"
-        // Let's use PUT /routes/:id/claim based on standard naming
+
+        // Endpoint: POST /api/routes/:id/claim
+        // Backend expects POST, not PUT.
+        console.log(`Claiming route: ${API_URL}/routes/${routeId}/claim`);
 
         const response = await fetch(`${API_URL}/routes/${routeId}/claim`, {
-            method: 'PUT',
+            method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
 
+        const text = await response.text();
+
         if (!response.ok) {
-            // Fallback: maybe it's just GET if claim isn't separate?
-            // But error message says "load route". 
-            // Let's stick to claim pattern.
-            const err = await response.text();
-            throw new Error(err || 'Failed to claim route');
+            let errorMessage = 'Failed to claim route';
+            try {
+                const err = JSON.parse(text);
+                errorMessage = err.message || err.error || errorMessage;
+            } catch {
+                // If parse fails, it's likely HTML (404/500)
+                console.error('API Error (Raw):', text);
+                errorMessage = `Server Error (${response.status}): Check API URL or Backend Logs.`;
+            }
+            throw new Error(errorMessage);
         }
-        return response.json();
+
+        try {
+            return JSON.parse(text);
+        } catch {
+            return { success: true }; // Fallback if empty success response
+        }
     },
 
     finishRoute: async (routeId: string, token: string) => {
