@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Clock, Play, Square, Coffee, UtensilsCrossed, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { timeTracker, TimeTrackerState } from '../services/timeTracker';
 
 interface ShiftTrackerProps {
@@ -18,38 +17,21 @@ export function ShiftTracker({ onClockOutAttempt }: ShiftTrackerProps) {
         return unsubscribe;
     }, []);
 
-    // Update timers every second
     useEffect(() => {
         const interval = setInterval(() => {
-            if (state.isOnDuty) {
-                setCurrentTime(timeTracker.getTotalWorkTime());
-            }
-            if (state.isOnBreak) {
-                setBreakTime(timeTracker.getCurrentBreakDuration());
-            }
+            if (state.isOnDuty) setCurrentTime(timeTracker.getTotalWorkTime());
+            if (state.isOnBreak) setBreakTime(timeTracker.getCurrentBreakDuration());
         }, 1000);
-
         return () => clearInterval(interval);
     }, [state.isOnDuty, state.isOnBreak]);
 
-    const handleClockIn = () => {
-        timeTracker.clockIn();
-    };
+    const handleClockIn = () => { timeTracker.clockIn(); };
 
     const handleClockOut = async () => {
-        // If callback provided, use it (redirect to wallet) instead of clocking out immediately
-        if (onClockOutAttempt) {
-            onClockOutAttempt();
-            return;
-        }
-
+        if (onClockOutAttempt) { onClockOutAttempt(); return; }
         if (confirm('Are you sure you want to clock out?')) {
             setIsClockingOut(true);
-            try {
-                await timeTracker.clockOut();
-            } finally {
-                setIsClockingOut(false);
-            }
+            try { await timeTracker.clockOut(); } finally { setIsClockingOut(false); }
         }
     };
 
@@ -58,58 +40,55 @@ export function ShiftTracker({ onClockOutAttempt }: ShiftTrackerProps) {
         setIsExpanded(false);
     };
 
-    const handleEndBreak = () => {
-        timeTracker.endBreak();
-    };
+    const handleEndBreak = () => { timeTracker.endBreak(); };
 
-    // Break time limits (in seconds)
     const LUNCH_LIMIT = 30 * 60;
     const SHORT_LIMIT = 15 * 60;
-
     const isBreakExceeded = state.isOnBreak && (
         (state.breakType === 'lunch' && breakTime > LUNCH_LIMIT) ||
         (state.breakType === 'short' && breakTime > SHORT_LIMIT)
     );
 
-    // Not clocked in - show Clock In button
+    // Not clocked in
     if (!state.isOnDuty) {
         return (
             <button
                 onClick={handleClockIn}
-                className="w-full py-4 bg-green-500 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-3 shadow-lg shadow-green-200 hover:bg-green-600 transition-all"
+                className="w-full py-4 bg-green-600 text-white rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-green-900/30 active:scale-[0.98] transition-all"
             >
-                <Play className="w-5 h-5" fill="white" />
+                <span className="material-symbols-rounded text-xl">play_arrow</span>
                 Clock In to Start Shift
             </button>
         );
     }
 
-    // On Break - show break status (compact)
+    // On Break
     if (state.isOnBreak) {
         return (
-            <div className={`rounded-2xl p-4 flex items-center justify-between ${isBreakExceeded ? 'bg-red-100 border border-red-300' : 'bg-orange-100 border border-orange-300'}`}>
+            <div className={`rounded-xl p-4 flex items-center justify-between ${isBreakExceeded ? 'bg-red-500/10 border border-red-500/30' : 'bg-orange-500/10 border border-orange-500/30'
+                }`}>
                 <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isBreakExceeded ? 'bg-red-200' : 'bg-orange-200'}`}>
-                        {state.breakType === 'lunch' ? (
-                            <UtensilsCrossed className={`w-5 h-5 ${isBreakExceeded ? 'text-red-600' : 'text-orange-600'}`} />
-                        ) : (
-                            <Coffee className={`w-5 h-5 ${isBreakExceeded ? 'text-red-600' : 'text-orange-600'}`} />
-                        )}
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isBreakExceeded ? 'bg-red-500/20' : 'bg-orange-500/20'
+                        }`}>
+                        <span className={`material-symbols-rounded text-xl ${isBreakExceeded ? 'text-red-400' : 'text-orange-400'}`}>
+                            {state.breakType === 'lunch' ? 'restaurant' : 'coffee'}
+                        </span>
                     </div>
                     <div>
-                        <p className={`font-bold ${isBreakExceeded ? 'text-red-700' : 'text-orange-700'}`}>
+                        <p className={`font-bold text-sm ${isBreakExceeded ? 'text-red-400' : 'text-orange-400'}`}>
                             {state.breakType === 'lunch' ? 'Lunch' : 'Break'} • {timeTracker.formatDuration(breakTime)}
                         </p>
                         {isBreakExceeded && (
-                            <p className="text-xs text-red-600 flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" /> Time exceeded
+                            <p className="text-[10px] text-red-500 flex items-center gap-1">
+                                <span className="material-symbols-rounded text-xs">warning</span> Time exceeded
                             </p>
                         )}
                     </div>
                 </div>
                 <button
                     onClick={handleEndBreak}
-                    className={`px-4 py-2 rounded-xl font-bold text-white ${isBreakExceeded ? 'bg-red-500' : 'bg-orange-500'}`}
+                    className={`px-4 py-2 rounded-lg font-bold text-white text-sm active:scale-95 transition-transform ${isBreakExceeded ? 'bg-red-500' : 'bg-orange-500'
+                        }`}
                 >
                     End Break
                 </button>
@@ -117,61 +96,51 @@ export function ShiftTracker({ onClockOutAttempt }: ShiftTrackerProps) {
         );
     }
 
-    // On Duty - Compact view (default) or Expanded
+    // On Duty
     return (
-        <div className="bg-green-100 rounded-2xl border border-green-300 overflow-hidden">
-            {/* Compact View - Always visible */}
-            <div
-                className="p-4 flex items-center justify-between cursor-pointer"
-                onClick={() => setIsExpanded(!isExpanded)}
-            >
+        <div className="bg-green-500/10 rounded-xl border border-green-500/30 overflow-hidden">
+            <div className="p-4 flex items-center justify-between cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-green-200 flex items-center justify-center">
-                        <Clock className="w-5 h-5 text-green-600" />
+                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                        <span className="material-symbols-rounded text-green-400 text-xl">schedule</span>
                     </div>
                     <div>
-                        <p className="font-bold text-green-700">
-                            On Duty
-                        </p>
-                        <p className="text-xs text-green-600">
+                        <p className="font-bold text-green-400 text-sm">On Duty • {timeTracker.formatDuration(currentTime)}</p>
+                        <p className="text-[10px] text-green-600">
                             Since {state.shiftData.clockIn ? timeTracker.formatTime(state.shiftData.clockIn) : '--'}
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    {isExpanded ? (
-                        <ChevronUp className="w-5 h-5 text-green-600" />
-                    ) : (
-                        <ChevronDown className="w-5 h-5 text-green-600" />
-                    )}
-                </div>
+                <span className="material-symbols-rounded text-green-600">
+                    {isExpanded ? 'expand_less' : 'expand_more'}
+                </span>
             </div>
 
-            {/* Expanded View - Break & Clock Out options */}
             {isExpanded && (
-                <div className="px-4 pb-4 space-y-3 border-t border-green-200 pt-3">
+                <div className="px-4 pb-4 space-y-2 border-t border-green-500/20 pt-3">
                     <div className="flex gap-2">
                         <button
                             onClick={() => handleStartBreak('lunch')}
                             disabled={isClockingOut}
-                            className="flex-1 py-2.5 bg-orange-100 border border-orange-300 text-orange-700 rounded-xl font-medium flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                            className="flex-1 py-2.5 bg-orange-500/10 border border-orange-500/30 text-orange-400 rounded-lg font-medium flex items-center justify-center gap-1.5 text-xs disabled:opacity-50 active:scale-95 transition-transform"
                         >
-                            <UtensilsCrossed className="w-4 h-4" />
+                            <span className="material-symbols-rounded text-base">restaurant</span>
                             Lunch
                         </button>
                         <button
                             onClick={() => handleStartBreak('short')}
                             disabled={isClockingOut}
-                            className="flex-1 py-2.5 bg-orange-100 border border-orange-300 text-orange-700 rounded-xl font-medium flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                            className="flex-1 py-2.5 bg-orange-500/10 border border-orange-500/30 text-orange-400 rounded-lg font-medium flex items-center justify-center gap-1.5 text-xs disabled:opacity-50 active:scale-95 transition-transform"
                         >
-                            <Coffee className="w-4 h-4" />
+                            <span className="material-symbols-rounded text-base">coffee</span>
                             Break
                         </button>
                     </div>
                     <button
                         onClick={handleClockOut}
                         disabled={isClockingOut}
-                        className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isClockingOut ? 'bg-gray-400 text-white cursor-wait' : 'bg-red-500 text-white hover:bg-red-600'}`}
+                        className={`w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all ${isClockingOut ? 'bg-gray-700 text-gray-400 cursor-wait' : 'bg-red-500/20 border border-red-500/30 text-red-400'
+                            }`}
                     >
                         {isClockingOut ? (
                             <>
@@ -180,7 +149,7 @@ export function ShiftTracker({ onClockOutAttempt }: ShiftTrackerProps) {
                             </>
                         ) : (
                             <>
-                                <Square className="w-4 h-4" fill="white" />
+                                <span className="material-symbols-rounded text-base">stop</span>
                                 Clock Out
                             </>
                         )}

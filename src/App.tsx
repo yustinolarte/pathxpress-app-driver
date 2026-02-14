@@ -6,6 +6,7 @@ import { Dashboard } from './components/Dashboard';
 import { RouteList } from './components/RouteList';
 import { DeliveryDetail } from './components/DeliveryDetail';
 import { DriverWallet } from './components/DriverWallet';
+import { LoadScan } from './components/LoadScan';
 
 import { Profile } from './components/Profile';
 import { Settings } from './components/Settings';
@@ -118,9 +119,12 @@ const MOCK_ROUTE = {
   ]
 };
 
+import { ReportIssue } from './components/ReportIssue';
+import { ScreenName } from './components/TabBar';
+
 export default function App() {
   // Start at login screen - REAL FLOW ENABLED
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'scanner' | 'inspection' | 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings' | 'wallet'>('login');
+  const [currentScreen, setCurrentScreen] = useState<ScreenName>('login');
   const [selectedDelivery, setSelectedDelivery] = useState<number | null>(null);
 
   // Default to false - require real login and scanning
@@ -135,6 +139,19 @@ export default function App() {
 
   // Loading state to prevent rendering before state restoration is complete
   const [isInitializing, setIsInitializing] = useState(true);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+  });
+
+  // Apply theme to root
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -259,7 +276,7 @@ export default function App() {
     setCurrentScreen('scanner');
   };
 
-  const handleNavigate = (screen: typeof currentScreen) => {
+  const handleNavigate = (screen: ScreenName) => {
     setCurrentScreen(screen);
   };
 
@@ -352,14 +369,17 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {currentScreen === 'dashboard' && <Dashboard onNavigate={handleNavigate} routeData={routeData} onStartRoute={handleStartRoute} hasActiveRoute={routeScanned && inspectionComplete} />}
-      {currentScreen === 'route' && <RouteList onNavigate={handleNavigate} onSelectDelivery={handleSelectDelivery} routeData={routeData} authToken={authToken!} onFinishRoute={handleFinishRoute} />}
-      {currentScreen === 'delivery' && <DeliveryDetail onNavigate={handleNavigate} deliveryId={selectedDelivery} routeData={routeData} authToken={authToken!} onDeliveryUpdate={handleDeliveryUpdate} />}
-
-      {currentScreen === 'profile' && <Profile onNavigate={handleNavigate} authToken={authToken!} hasRoute={routeScanned} />}
-      {currentScreen === 'settings' && <Settings onNavigate={handleNavigate} onLogout={handleLogout} />}
-      {currentScreen === 'wallet' && <DriverWallet onNavigate={handleNavigate} authToken={authToken!} onLogout={handleLogout} />}
+    <div className="min-h-screen bg-background flex justify-center">
+      <div className="w-full max-w-md min-h-screen bg-background relative shadow-2xl">
+        {currentScreen === 'dashboard' && <Dashboard onNavigate={handleNavigate} routeData={routeData} onStartRoute={handleStartRoute} hasActiveRoute={routeScanned && inspectionComplete} driverInfo={driverInfo} />}
+        {currentScreen === 'route' && <RouteList onNavigate={handleNavigate} onSelectDelivery={handleSelectDelivery} routeData={routeData} authToken={authToken!} onFinishRoute={handleFinishRoute} />}
+        {currentScreen === 'delivery' && <DeliveryDetail onNavigate={handleNavigate} deliveryId={selectedDelivery} routeData={routeData} authToken={authToken!} onDeliveryUpdate={handleDeliveryUpdate} />}
+        {currentScreen === 'issue' && <ReportIssue onNavigate={handleNavigate} authToken={authToken!} hasRoute={routeScanned} />}
+        {currentScreen === 'profile' && <Profile onNavigate={handleNavigate} authToken={authToken!} hasRoute={routeScanned} />}
+        {currentScreen === 'settings' && <Settings onNavigate={handleNavigate} onLogout={handleLogout} theme={theme} onToggleTheme={toggleTheme} />}
+        {currentScreen === 'wallet' && <DriverWallet onNavigate={handleNavigate} authToken={authToken!} onLogout={handleLogout} />}
+        {currentScreen === 'load_scan' && <LoadScan routeData={routeData} onComplete={() => setCurrentScreen('dashboard')} onCancel={() => setCurrentScreen('dashboard')} />}
+      </div>
     </div>
   );
 }

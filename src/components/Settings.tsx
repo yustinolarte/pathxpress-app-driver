@@ -1,152 +1,174 @@
-import { ArrowLeft, Bell, HelpCircle, LogOut, Shield } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { ScreenName, TabBar } from './TabBar';
+import { biometricService } from '../services/biometric';
 
 interface SettingsProps {
-  onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'profile' | 'settings') => void;
+  onNavigate: (screen: ScreenName) => void;
   onLogout: () => void;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
 }
 
-export function Settings({ onNavigate, onLogout }: SettingsProps) {
+export function Settings({ onNavigate, onLogout, theme, onToggleTheme }: SettingsProps) {
   const [notifications, setNotifications] = useState(true);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+  useEffect(() => {
+    // Check if available and enabled
+    biometricService.checkAvailability().then(available => {
+      setBiometricsAvailable(available);
+      setBiometricsEnabled(biometricService.isBiometricEnabled());
+    });
+  }, []);
 
   const settingsOptions = [
     {
       category: 'Preferences',
       items: [
-        { id: 'notifications', icon: Bell, label: 'Notifications', color: 'text-gray-700', bg: 'bg-gray-100', toggle: true, value: notifications },
+        { id: 'theme', icon: theme === 'dark' ? 'dark_mode' : 'light_mode', label: 'Dark Mode', toggle: true, value: theme === 'dark' },
+        { id: 'notifications', icon: 'notifications', label: 'Notifications', toggle: true, value: notifications },
+        // Only show if available
+        ...(biometricsAvailable ? [{
+          id: 'biometric',
+          icon: 'fingerprint',
+          label: 'Biometric Login',
+          toggle: true,
+          value: biometricsEnabled
+        }] : []),
       ]
     },
     {
       category: 'Security',
       items: [
-        { id: 'privacy', icon: Shield, label: 'Privacy & Security', color: 'text-gray-700', bg: 'bg-gray-100' },
+        { id: 'privacy', icon: 'shield', label: 'Privacy & Security' },
+      ]
+    },
+    {
+      category: 'Support',
+      items: [
+        { id: 'help', icon: 'help', label: 'Help & Support' },
+        { id: 'about', icon: 'info', label: 'About' },
       ]
     },
   ];
 
-  const handleItemClick = (id: string) => {
-    if (id === 'notifications') {
-      setNotifications(!notifications);
-    } else if (id === 'privacy') {
-      setShowPrivacyModal(true);
+  const handleItemClick = async (id: string) => {
+    if (id === 'theme') onToggleTheme();
+    else if (id === 'notifications') setNotifications(!notifications);
+    else if (id === 'privacy') setShowPrivacyModal(true);
+    else if (id === 'biometric') {
+      if (biometricsEnabled) {
+        await biometricService.disableBiometric();
+        setBiometricsEnabled(false);
+      } else {
+        // Prompt for password to enable
+        const password = prompt("Please enter your password to enable biometric login:");
+        if (password) {
+          // Get username from stored driver info
+          const driverInfoStr = localStorage.getItem('driverInfo');
+          let username = '';
+          if (driverInfoStr) {
+            try {
+              const driverInfo = JSON.parse(driverInfoStr);
+              username = driverInfo.username || driverInfo.email;
+            } catch (e) {
+              console.error('Error parsing driver info', e);
+            }
+          }
+
+          if (username) {
+            const success = await biometricService.enableBiometric(username, password);
+            if (success) setBiometricsEnabled(true);
+            else alert('Failed to enable biometrics. Please try again.');
+          } else {
+            alert('Could not determine username. Please login again.');
+          }
+        }
+      }
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    <div className="min-h-screen bg-background pb-28 font-sans">
       {/* Header */}
-      <div className="bg-white px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-6 shadow-sm">
-        <div className="flex items-center gap-4">
-          <button onClick={() => onNavigate('dashboard')} className="text-gray-900 hover:bg-gray-100 p-2 rounded-full transition-colors">
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <h2 className="text-gray-900 text-xl font-bold" style={{ fontFamily: 'Poppins, sans-serif' }}>Settings</h2>
-        </div>
-      </div>
+      <div className="px-5 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-4">
+        <h1 className="text-2xl font-bold text-foreground mb-6">Settings</h1>
 
-      <div className="px-6 pt-6 space-y-6">
-        {settingsOptions.map((section) => (
-          <div key={section.category}>
-            <h3 className="text-gray-500 text-sm font-medium mb-3 px-2 uppercase tracking-wider">{section.category}</h3>
-            <div className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm">
-              {section.items.map((item: any, index) => {
-                const Icon = item.icon;
-                return (
+        <div className="space-y-5">
+          {settingsOptions.map((section) => (
+            <div key={section.category}>
+              <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">{section.category}</h3>
+              <div className="bg-card rounded-xl border border-gray-800/50 overflow-hidden">
+                {section.items.map((item: any, index) => (
                   <button
                     key={item.id}
                     onClick={() => handleItemClick(item.id)}
-                    className={`w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-all ${index !== section.items.length - 1 ? 'border-b border-gray-100' : ''
+                    className={`w-full flex items-center justify-between p-4 hover:bg-surface-darker transition-all ${index !== section.items.length - 1 ? 'border-b border-gray-800/50' : ''
                       }`}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 ${item.bg} rounded-xl flex items-center justify-center`}>
-                        <Icon className={`w-5 h-5 ${item.color}`} />
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-surface-darker rounded-lg flex items-center justify-center">
+                        <span className="material-symbols-rounded text-gray-400 text-lg">{item.icon}</span>
                       </div>
-                      <span className="text-gray-900 font-medium">{item.label}</span>
+                      <span className="text-foreground text-sm font-medium">{item.label}</span>
                     </div>
-
                     <div className="flex items-center gap-2">
-                      {item.value !== undefined && !item.toggle && (
-                        <span className="text-gray-500">{item.value}</span>
-                      )}
                       {item.toggle ? (
-                        <div className={`relative w-12 h-7 rounded-full transition-colors ${item.value ? 'bg-red-600' : 'bg-gray-300'}`}>
-                          <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-all ${item.value ? 'right-1' : 'left-1'}`}></div>
+                        <div className={`relative w-11 h-6 rounded-full transition-colors ${item.value ? 'bg-primary' : 'bg-gray-700'}`}>
+                          <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all ${item.value ? 'right-0.5' : 'left-0.5'}`} />
                         </div>
                       ) : (
-                        <div className="text-gray-400">›</div>
+                        <span className="material-symbols-rounded text-gray-600 text-lg">chevron_right</span>
                       )}
                     </div>
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {/* Logout Button */}
-        <div className="pt-4">
+          {/* Logout */}
           <button
             onClick={onLogout}
-            className="w-full bg-white border border-red-100 text-red-600 py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-red-50 transition-all shadow-sm font-medium"
-            style={{ fontFamily: 'Poppins, sans-serif' }}
+            className="w-full bg-red-500/10 border border-red-500/20 text-red-400 py-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all font-medium"
           >
-            <LogOut className="w-5 h-5" />
-            Logout
+            <span className="material-symbols-rounded text-xl">logout</span>
+            Sign Out
           </button>
-        </div>
 
-        {/* Version Info */}
-        <div className="text-center text-gray-400 pt-4 text-sm">
-          <div>PATHXPRESS Driver</div>
-          <div>Version 2.1.0</div>
+          <div className="text-center text-gray-600 pt-2 text-xs">
+            <div>PATHXPRESS Driver v2.1.0</div>
+          </div>
         </div>
       </div>
 
       {/* Privacy Modal */}
       {showPrivacyModal && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center px-6">
-          <div className="w-full max-w-md bg-white border border-gray-100 rounded-3xl p-6 max-h-[80vh] overflow-y-auto shadow-2xl">
-            <h3 className="text-gray-900 mb-4 text-xl font-bold" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              Privacy & Security
-            </h3>
-
-            <div className="space-y-4 text-gray-600 text-sm leading-relaxed">
-              <p>
-                <strong className="text-gray-900">Data Protection (UAE PDPL)</strong><br />
-                PathXpress is committed to protecting your personal data in compliance with the UAE Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data (PDPL).
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center px-5">
+          <div className="w-full max-w-sm bg-surface-dark border border-gray-800 rounded-2xl p-5 max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-foreground mb-4">Privacy & Security</h3>
+            <div className="space-y-3 text-gray-400 text-sm leading-relaxed">
+              <p><strong className="text-foreground">Data Protection (UAE PDPL)</strong><br />
+                PathXpress protects your personal data in compliance with UAE PDPL.
               </p>
-
-              <p>
-                <strong className="text-gray-900">Data Collection & Usage</strong><br />
-                We collect only necessary data (location, device info, delivery proof) to fulfill service obligations. Your data is processed lawfully, fairly, and transparently.
+              <p><strong className="text-foreground">Data Collection</strong><br />
+                We collect only necessary data (location, device info, delivery proof) to fulfill service obligations.
               </p>
-
-              <p>
-                <strong className="text-gray-900">Data Storage & Transfer</strong><br />
-                Your data is stored securely within the UAE. Any cross-border transfer complies with PDPL regulations ensuring adequate protection levels.
+              <p><strong className="text-foreground">Your Rights</strong><br />
+                You have the right to access, correct, or request deletion of your personal data.
               </p>
-
-              <p>
-                <strong className="text-gray-900">Your Rights</strong><br />
-                You have the right to access, correct, or request deletion of your personal data. Contact our Data Protection Officer for inquiries.
-              </p>
-
-              <p className="text-xs text-gray-400 mt-4">
-                Last updated: December 2025
-              </p>
+              <p className="text-xs text-gray-600 mt-4">Last updated: December 2025</p>
             </div>
-
-            <button
-              onClick={() => setShowPrivacyModal(false)}
-              className="w-full mt-6 bg-red-600 text-white py-4 rounded-2xl hover:bg-red-700 transition-all font-medium"
-            >
+            <button onClick={() => setShowPrivacyModal(false)} className="w-full mt-5 bg-primary text-white py-3 rounded-xl font-bold active:scale-[0.98] transition-transform">
               Close
             </button>
           </div>
         </div>
       )}
+
+      <TabBar currentTab="settings" onNavigate={onNavigate} />
     </div>
   );
 }

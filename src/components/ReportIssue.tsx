@@ -1,12 +1,12 @@
 import { ArrowLeft, Camera, MapPin, AlertCircle, X } from 'lucide-react';
-import { TabBar } from './TabBar';
+import { ScreenName, TabBar } from './TabBar';
 import { useState } from 'react';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
 import { api } from '../services/api';
 
 interface ReportIssueProps {
-  onNavigate: (screen: 'dashboard' | 'route' | 'delivery' | 'issue' | 'profile' | 'settings') => void;
+  onNavigate: (screen: ScreenName) => void;
   authToken: string;
   hasRoute?: boolean;
 }
@@ -111,21 +111,21 @@ export function ReportIssue({ onNavigate, authToken, hasRoute }: ReportIssueProp
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    <div className="min-h-screen bg-background pb-32">
       {/* Header */}
-      <div className="bg-white px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-6 shadow-sm">
+      <div className="bg-background px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-6 shadow-sm border-b border-gray-800">
         <div className="flex items-center gap-4">
-          <button onClick={() => onNavigate('dashboard')} className="text-gray-900 hover:bg-gray-100 p-2 rounded-full transition-colors">
+          <button onClick={() => onNavigate('dashboard')} className="text-foreground hover:bg-surface-dark p-2 rounded-full transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h2 className="text-gray-900 text-xl font-bold" style={{ fontFamily: 'Poppins, sans-serif' }}>Report Issue</h2>
+          <h2 className="text-foreground text-xl font-bold" style={{ fontFamily: 'Poppins, sans-serif' }}>Report Issue</h2>
         </div>
       </div>
 
       <div className="px-6 pt-6 space-y-4">
         {/* Issue Type Selection */}
-        <div className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6">
-          <h3 className="text-gray-900 font-bold mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Select Issue Type</h3>
+        <div className="bg-card border border-gray-800 shadow-sm rounded-3xl p-6">
+          <h3 className="text-foreground font-bold mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Select Issue Type</h3>
 
           <div className="space-y-3">
             {issueTypes.map((issue) => (
@@ -133,13 +133,13 @@ export function ReportIssue({ onNavigate, authToken, hasRoute }: ReportIssueProp
                 key={issue.id}
                 onClick={() => setSelectedIssue(issue.id)}
                 className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${selectedIssue === issue.id
-                  ? 'bg-red-600 text-white shadow-lg shadow-red-200'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                  ? 'bg-primary text-white shadow-lg shadow-red-900/20'
+                  : 'bg-surface-dark text-gray-300 border border-gray-700 hover:bg-gray-700'
                   }`}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedIssue === issue.id ? 'bg-white/20' : 'bg-gray-100'
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedIssue === issue.id ? 'bg-white/20' : 'bg-gray-800'
                   }`}>
-                  <issue.icon className={`w-5 h-5 ${selectedIssue === issue.id ? 'text-white' : 'text-gray-500'}`} />
+                  <issue.icon className={`w-5 h-5 ${selectedIssue === issue.id ? 'text-white' : 'text-gray-400'}`} />
                 </div>
                 <span>{issue.label}</span>
               </button>
@@ -148,20 +148,20 @@ export function ReportIssue({ onNavigate, authToken, hasRoute }: ReportIssueProp
         </div>
 
         {/* Notes */}
-        <div className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6">
-          <h3 className="text-gray-900 font-bold mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Additional Notes</h3>
+        <div className="bg-card border border-gray-800 shadow-sm rounded-3xl p-6">
+          <h3 className="text-foreground font-bold mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Additional Notes</h3>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Describe the issue in detail..."
             rows={4}
-            className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-600 transition-all resize-none"
+            className="w-full bg-surface-dark border border-gray-700 rounded-2xl px-4 py-3 text-foreground placeholder-gray-500 focus:outline-none focus:border-primary transition-all resize-none"
           />
         </div>
 
         {/* Photo Upload */}
-        <div className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6">
-          <h3 className="text-gray-900 font-bold mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Attach Photo</h3>
+        <div className="bg-card border border-gray-800 shadow-sm rounded-3xl p-6">
+          <h3 className="text-foreground font-bold mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Attach Photo</h3>
 
           {capturedPhoto ? (
             <div className="relative">
@@ -180,9 +180,9 @@ export function ReportIssue({ onNavigate, authToken, hasRoute }: ReportIssueProp
           ) : (
             <div
               onClick={handleTakePhoto}
-              className="border-2 border-dashed border-gray-300 bg-gray-50 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-red-400 hover:bg-gray-100 transition-all active:scale-[0.98]"
+              className="border-2 border-dashed border-gray-700 bg-surface-dark rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-800 transition-all active:scale-[0.98]"
             >
-              <div className="w-16 h-16 bg-white shadow-sm rounded-full flex items-center justify-center mb-3">
+              <div className="w-16 h-16 bg-gray-800 shadow-sm rounded-full flex items-center justify-center mb-3">
                 <Camera className="w-8 h-8 text-gray-500" />
               </div>
               <span className="text-gray-500 font-medium">Tap to take photo</span>
@@ -191,9 +191,9 @@ export function ReportIssue({ onNavigate, authToken, hasRoute }: ReportIssueProp
         </div>
 
         {/* Location Info */}
-        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-3">
-          <MapPin className="w-5 h-5 text-red-600" />
-          <div className="text-red-700 text-sm font-medium">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-center gap-3">
+          <MapPin className="w-5 h-5 text-red-500" />
+          <div className="text-red-400 text-sm font-medium">
             Your current location will be attached automatically
           </div>
         </div>
@@ -203,8 +203,8 @@ export function ReportIssue({ onNavigate, authToken, hasRoute }: ReportIssueProp
           onClick={handleSendReport}
           disabled={isSubmitting || !selectedIssue}
           className={`w-full py-5 rounded-2xl transition-all shadow-lg font-bold ${isSubmitting || !selectedIssue
-            ? 'bg-gray-200 text-gray-400 shadow-none cursor-not-allowed'
-            : 'bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white shadow-red-200'
+            ? 'bg-gray-800 text-gray-500 shadow-none cursor-not-allowed'
+            : 'bg-primary hover:bg-red-700 active:scale-[0.98] text-white shadow-red-900/20'
             }`}
           style={{ fontFamily: 'Poppins, sans-serif' }}
         >

@@ -49,6 +49,8 @@ export default {
                     DEFAULT: "hsl(var(--accent-purple))",
                     foreground: "hsl(var(--accent-purple-foreground))",
                 },
+                "surface-dark": "hsl(var(--surface-dark))",
+                "surface-darker": "hsl(var(--surface-darker))",
             },
             borderRadius: {
                 lg: "var(--radius)",

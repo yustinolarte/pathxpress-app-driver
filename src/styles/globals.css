@@ -1,11 +1,16 @@
+@import 'leaflet/dist/leaflet.css';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
-
-/* Leaflet Map Styles */
-@import 'leaflet/dist/leaflet.css';
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  src: url('/fonts/MaterialSymbolsRounded.woff2') format('woff2');
+}
 
 /* Custom Leaflet overrides */
 .leaflet-container {
@@ -26,59 +31,111 @@
   border: none;
 }
 
-@layer base {
-  :root {
-    --background: 255 30% 96%;
-    /* Soft Lavender-ish Gray background */
-    --foreground: 222.2 84% 4.9%;
-    /* Dark Text */
+/* Material Icons helper */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+/* Hide scrollbar for horizontal scroll sections */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 0 0% 10%;
-    /* Dark Black/Grey for main buttons */
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 255 100% 97%;
-    /* Very ligth purple/white */
-    --secondary-foreground: 260 20% 40%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 252 64% 92%;
-    /* Soft Purple Accent */
-    --accent-foreground: 260 30% 20%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 260 20% 20%;
-
-    --radius: 1.75rem;
-    /* Significant rounding */
-
-    /* Custom Colors from Image */
-    --accent-green: 140 60% 92%;
-    --accent-green-foreground: 145 80% 20%;
-
-    --accent-purple: 252 80% 94%;
-    --accent-purple-foreground: 260 60% 30%;
-  }
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @layer base {
+  :root {
+    /* Default (Dark) Theme */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 0 100% 44%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 70%;
+
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 0 100% 44%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 0 100% 44%;
+
+    --radius: 1rem;
+
+    --surface-dark: 0 0% 9%;
+    --surface-darker: 0 0% 5%;
+
+    --accent-green: 140 60% 40%;
+    --accent-green-foreground: 140 80% 90%;
+
+    --accent-purple: 252 80% 60%;
+    --accent-purple-foreground: 260 60% 90%;
+  }
+
+  /* Light Theme Overrides */
+  :root[data-theme='light'] {
+    --background: 0 0% 98%;
+    /* Off-white background */
+    --foreground: 0 0% 10%;
+    /* Dark grey text */
+
+    --card: 0 0% 100%;
+    /* White cards */
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --secondary: 0 0% 94%;
+    /* Light grey secondary */
+    --secondary-foreground: 0 0% 20%;
+
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 40%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+
+    --surface-dark: 0 0% 96%;
+    /* Light grey surface */
+    --surface-darker: 0 0% 92%;
+    /* Slightly darker */
+  }
+
   * {
     @apply border-border;
   }
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
   }
 }

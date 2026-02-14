@@ -109,8 +109,6 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
     useEffect(() => {
         if (!mapContainerRef.current || mapRef.current || !resolvedDest) return;
 
-        const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-
         const map = L.map(mapContainerRef.current, {
             center: resolvedDest,
             zoom: 14,
@@ -120,11 +118,11 @@ export function DeliveryMiniMap({ destinationLat, destinationLng, customerName, 
             scrollWheelZoom: false,
         });
 
-        L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`, {
-            tileSize: 512,
-            zoomOffset: -1,
-            attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
-            maxZoom: 19
+        // CartoDB Voyager (Clean, modern, no API key required)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
         }).addTo(map);
 
         // Destination Marker (Red)

@@ -11,6 +11,7 @@ interface Stop {
     status: string;
     type: string;
     cod?: string | null;
+    specialInstructions?: string;
 }
 
 interface RouteMapProps {
@@ -72,13 +73,11 @@ export function RouteMap({ stops, onStopClick, onBack, onNavigateExternal }: Rou
 
         // Add tile layer (OpenStreetMap)
         // Mapbox Streets v12
-        const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-
-        L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`, {
-            tileSize: 512,
-            zoomOffset: -1,
-            attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
-            maxZoom: 19
+        // CartoDB Voyager (Clean, modern, no API key required for basic use)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
         }).addTo(map);
 
         // Driver marker (blue)
@@ -140,6 +139,12 @@ export function RouteMap({ stops, onStopClick, onBack, onNavigateExternal }: Rou
             ">${stop.status}</span>
             ${stop.cod ? `<span style="font-size: 12px; font-weight: bold; color: #000;">${stop.cod}</span>` : ''}
           </div>
+          ${stop.specialInstructions ? `
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #eee;">
+               <p style="color: #d97706; font-size: 11px; font-weight: bold; margin: 0;">NOTE:</p>
+               <p style="color: #4b5563; font-size: 11px; margin: 2px 0 0 0;">${stop.specialInstructions}</p>
+            </div>
+          ` : ''}
         </div>
       `);
 
